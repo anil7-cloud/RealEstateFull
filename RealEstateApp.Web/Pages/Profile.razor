@@ -1,4 +1,5 @@
 @page "/profile"
+
 @attribute [Authorize]
 
 @using System.Security.Claims
@@ -21,9 +22,21 @@ else
 {
     <div class="card">
         <div class="card-body">
-            <p><strong>Kullanıcı ID:</strong> @_userId</p>
-            <p><strong>Email:</strong> @_email</p>
-            <p><strong>Kullanıcı:</strong> @_userName</p>
+
+            <p>
+                <strong>Kullanıcı ID:</strong>
+                @_userId
+            </p>
+
+            <p>
+                <strong>Email:</strong>
+                @_email
+            </p>
+
+            <p>
+                <strong>Kullanıcı:</strong>
+                @_userName
+            </p>
 
             <hr />
 
@@ -33,7 +46,9 @@ else
                     Bu kullanıcıya bağlı emlak ofisi bulunamadı.
                 </div>
 
-                <button class="btn btn-dark" @onclick="CreateAgency">
+                <button type="button"
+                        class="btn btn-dark"
+                        @onclick="GoToCreateAgency">
                     Emlak Ofisi Oluştur
                 </button>
             }
@@ -41,21 +56,41 @@ else
             {
                 <h5>Ajans Bilgisi</h5>
 
-                <p><strong>Ajans:</strong> @_agency.Name</p>
-                <p><strong>Şehir:</strong> @_agency.City</p>
-                <p><strong>İlçe:</strong> @_agency.District</p>
-                <p><strong>Telefon:</strong> @_agency.Phone</p>
+                <p>
+                    <strong>Ajans:</strong>
+                    @_agency.Name
+                </p>
+
+                <p>
+                    <strong>Şehir:</strong>
+                    @_agency.City
+                </p>
+
+                <p>
+                    <strong>İlçe:</strong>
+                    @_agency.District
+                </p>
+
+                <p>
+                    <strong>Telefon:</strong>
+                    @_agency.Phone
+                </p>
 
                 <div class="d-flex gap-2">
-                    <button class="btn btn-dark" @onclick="GoToAgency">
+                    <button type="button"
+                            class="btn btn-dark"
+                            @onclick="GoToAgency">
                         Ajansa Git
                     </button>
 
-                    <button class="btn btn-primary" @onclick="GoToDashboard">
+                    <button type="button"
+                            class="btn btn-primary"
+                            @onclick="GoToDashboard">
                         Admin Panel
                     </button>
                 </div>
             }
+
         </div>
     </div>
 }
@@ -71,40 +106,64 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
+        var authState =
+            await AuthStateProvider
+                .GetAuthenticationStateAsync();
+
+        var user =
+            authState.User;
 
         if (user.Identity?.IsAuthenticated == true)
         {
-            _userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            _email = user.FindFirst(ClaimTypes.Email)?.Value;
-            _userName = user.Identity.Name;
+            _userId =
+                user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            _email =
+                user.FindFirst(ClaimTypes.Email)?.Value;
+
+            _userName =
+                user.Identity.Name;
 
             if (!string.IsNullOrWhiteSpace(_userId))
             {
-                _agency = await Db.Agencies
-                    .FirstOrDefaultAsync(x => x.IdentityUserId == _userId);
+                _agency =
+                    await Db.Agencies
+                        .FirstOrDefaultAsync(
+                            x => x.IdentityUserId == _userId
+                        );
             }
         }
 
         _loaded = true;
     }
 
-    private void CreateAgency()
+    private void GoToCreateAgency()
     {
-        Nav.NavigateTo("/admin/agency/create");
+        Nav.NavigateTo(
+            "/admin/agency/create",
+            forceLoad: true
+        );
     }
 
     private void GoToAgency()
     {
-        if (_agency is not null)
-        {
-            Nav.NavigateTo($"/agency/{_agency.Slug}");
-        }
+        if (_agency is null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(_agency.Slug))
+            return;
+
+        Nav.NavigateTo(
+            $"/agency/{_agency.Slug}",
+            forceLoad: true
+        );
     }
 
     private void GoToDashboard()
     {
-        Nav.NavigateTo("/admin/dashboard");
+        Nav.NavigateTo(
+            "/admin/dashboard",
+            forceLoad: true
+        );
     }
 }
