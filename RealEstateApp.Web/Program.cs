@@ -49,6 +49,16 @@ builder.Services
     .AddDefaultTokenProviders();
 
 //
+// COOKIE LOGIN PATH FIX
+//
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/auth/login";
+    options.AccessDeniedPath = "/auth/login";
+});
+
+//
 // AUTHORIZATION
 //
 
