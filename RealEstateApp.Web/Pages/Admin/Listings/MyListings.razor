@@ -1,0 +1,54 @@
+@page "/admin/{AgencyId:int}/listings"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext Db
+
+<h3>İlanlarım</h3>
+
+@if (_listings is null)
+{
+    <p>Yükleniyor...</p>
+}
+else if (_listings.Count == 0)
+{
+    <p>Bu ofise ait ilan yok.</p>
+}
+else
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Başlık</th>
+                <th>Şehir</th>
+                <th>İlçe</th>
+                <th>Fiyat</th>
+                <th>Durum</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in _listings)
+            {
+                <tr>
+                    <td>@item.Title</td>
+                    <td>@item.City</td>
+                    <td>@item.District</td>
+                    <td>@item.Price.ToString("N0") ₺</td>
+                    <td>@item.Status</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter] public int AgencyId { get; set; }
+
+    private List<Listing>? _listings;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _listings = await Db.Listings
+            .Where(x => x.AgencyId == AgencyId)
+            .OrderByDescending(x => x.Id)
+            .ToListAsync();
+    }
+}

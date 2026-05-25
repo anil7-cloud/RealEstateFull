@@ -1,0 +1,96 @@
+@page "/account/register"
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using RealEstateApp.Web.Models
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager Nav
+
+<h3>Kayıt Ol</h3>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="alert alert-info">
+        @_message
+    </div>
+}
+
+<EditForm Model="_model" OnValidSubmit="RegisterUser">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label>Ad Soyad</label>
+        <InputText class="form-control" @bind-Value="_model.FullName" />
+    </div>
+
+    <div class="mb-3">
+        <label>Email</label>
+        <InputText class="form-control" @bind-Value="_model.Email" />
+    </div>
+
+    <div class="mb-3">
+        <label>Şifre</label>
+        <InputText type="password" class="form-control" @bind-Value="_model.Password" />
+    </div>
+
+    <button type="submit" class="btn btn-primary" disabled="@_isSaving">
+        @(_isSaving ? "Kaydediliyor..." : "Kayıt Ol")
+    </button>
+</EditForm>
+
+@code {
+    private RegisterModel _model = new();
+    private string? _message;
+    private bool _isSaving;
+
+    private async Task RegisterUser()
+    {
+        if (_isSaving)
+            return;
+
+        _isSaving = true;
+        _message = null;
+
+        try
+        {
+            var user = new ApplicationUser
+            {
+                UserName = _model.Email,
+                Email = _model.Email,
+                FullName = _model.FullName
+            };
+
+            var result = await UserManager.CreateAsync(user, _model.Password);
+
+            if (!result.Succeeded)
+            {
+                _message = string.Join(" | ", result.Errors.Select(x => x.Description));
+                return;
+            }
+
+            await SignInManager.SignInAsync(user, isPersistent: false);
+
+            Nav.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            _message = $"Hata oluştu: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private class RegisterModel
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}

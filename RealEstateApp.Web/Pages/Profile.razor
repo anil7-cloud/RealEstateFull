@@ -1,0 +1,110 @@
+@page "/profile"
+@attribute [Authorize]
+
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using RealEstateApp.Web.Models
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<h3>Profil</h3>
+
+@if (!_loaded)
+{
+    <p>Yükleniyor...</p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <p><strong>Kullanıcı ID:</strong> @_userId</p>
+            <p><strong>Email:</strong> @_email</p>
+            <p><strong>Kullanıcı:</strong> @_userName</p>
+
+            <hr />
+
+            @if (_agency is null)
+            {
+                <div class="alert alert-warning">
+                    Bu kullanıcıya bağlı emlak ofisi bulunamadı.
+                </div>
+
+                <button class="btn btn-dark" @onclick="CreateAgency">
+                    Emlak Ofisi Oluştur
+                </button>
+            }
+            else
+            {
+                <h5>Ajans Bilgisi</h5>
+
+                <p><strong>Ajans:</strong> @_agency.Name</p>
+                <p><strong>Şehir:</strong> @_agency.City</p>
+                <p><strong>İlçe:</strong> @_agency.District</p>
+                <p><strong>Telefon:</strong> @_agency.Phone</p>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-dark" @onclick="GoToAgency">
+                        Ajansa Git
+                    </button>
+
+                    <button class="btn btn-primary" @onclick="GoToDashboard">
+                        Admin Panel
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private string? _userId;
+    private string? _email;
+    private string? _userName;
+
+    private RealEstateApp.Web.Models.Agency? _agency;
+
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            _email = user.FindFirst(ClaimTypes.Email)?.Value;
+            _userName = user.Identity.Name;
+
+            if (!string.IsNullOrWhiteSpace(_userId))
+            {
+                _agency = await Db.Agencies
+                    .FirstOrDefaultAsync(x => x.IdentityUserId == _userId);
+            }
+        }
+
+        _loaded = true;
+    }
+
+    private void CreateAgency()
+    {
+        Nav.NavigateTo("/admin/agency/create");
+    }
+
+    private void GoToAgency()
+    {
+        if (_agency is not null)
+        {
+            Nav.NavigateTo($"/agency/{_agency.Slug}");
+        }
+    }
+
+    private void GoToDashboard()
+    {
+        Nav.NavigateTo("/admin/dashboard");
+    }
+}

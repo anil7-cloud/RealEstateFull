@@ -1,0 +1,272 @@
+@page "/listings/{slug}"
+
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.EntityFrameworkCore
+@using RealEstateApp.Web.Models
+
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+@if (_isLoading)
+{
+    <p>Yükleniyor...</p>
+}
+else if (_listing is null)
+{
+    <div class="alert alert-danger">
+        İlan bulunamadı.
+    </div>
+}
+else
+{
+    <div class="container mt-4">
+        <div class="row">
+
+            <div class="col-md-6">
+                @if (!string.IsNullOrWhiteSpace(_selectedImage))
+                {
+                    <img src="@_selectedImage"
+                         class="img-fluid rounded shadow-sm mb-3"
+                         style="width:100%; max-height:420px; object-fit:cover;" />
+                }
+
+                @if (_listing.Images.Any())
+                {
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var image in _listing.Images.OrderBy(x => x.DisplayOrder))
+                        {
+                            <img src="@image.ImageUrl"
+                                 style="width:90px; height:70px; object-fit:cover; cursor:pointer; border-radius:6px;"
+                                 @onclick="() => SelectImage(image.ImageUrl)" />
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="col-md-6">
+                <h2>@_listing.Title</h2>
+
+                <h4 class="text-primary">
+                    @_listing.Price.ToString("N0") ₺
+                </h4>
+
+                <ul class="list-group mb-3">
+                    <li class="list-group-item"><strong>Şehir:</strong> @_listing.City</li>
+                    <li class="list-group-item"><strong>İlçe:</strong> @_listing.District</li>
+                    <li class="list-group-item"><strong>Mahalle:</strong> @_listing.Neighborhood</li>
+                    <li class="list-group-item"><strong>Oda:</strong> @_listing.RoomCount</li>
+                    <li class="list-group-item"><strong>Brüt m²:</strong> @_listing.GrossM2</li>
+                </ul>
+
+                <div class="d-flex gap-2 mb-3">
+                    <button type="button"
+                            class="btn btn-success"
+                            @onclick="OpenWhatsApp">
+                        WhatsApp ile Yaz
+                    </button>
+
+                    @if (_listing.Agency is not null &&
+                         !string.IsNullOrWhiteSpace(_listing.Agency.Slug))
+                    {
+                        <button type="button"
+                                class="btn btn-outline-dark"
+                                @onclick="GoToAgency">
+                            Ofis Sayfası
+                        </button>
+                    }
+                </div>
+
+                @if (_listing.Agency is not null)
+                {
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5>Emlak Ofisi</h5>
+
+                            <p class="mb-1">
+                                <strong>@_listing.Agency.Name</strong>
+                            </p>
+
+                            <p class="mb-1">
+                                @_listing.Agency.City / @_listing.Agency.District
+                            </p>
+
+                            <p class="mb-0">
+                                @_listing.Agency.Phone
+                            </p>
+                        </div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_message))
+                {
+                    <div class="alert alert-info">
+                        @_message
+                    </div>
+                }
+
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5>Açıklama</h5>
+
+                        <p>
+                            @(string.IsNullOrWhiteSpace(_listing.Description)
+                                ? "Açıklama bulunmuyor."
+                                : _listing.Description)
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h5>Bu ilan için bilgi al</h5>
+
+                        <EditForm Model="_lead"
+                                  OnValidSubmit="SaveLead"
+                                  FormName="LeadForm">
+
+                            <DataAnnotationsValidator />
+                            <ValidationSummary />
+
+                            <div class="mb-3">
+                                <label>Ad Soyad</label>
+                                <InputText class="form-control"
+                                           @bind-Value="_lead.FullName" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label>Telefon</label>
+                                <InputText class="form-control"
+                                           @bind-Value="_lead.Phone" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label>Mesaj</label>
+                                <InputTextArea class="form-control"
+                                               rows="4"
+                                               @bind-Value="_lead.Message" />
+                            </div>
+
+                            <button type="submit"
+                                    class="btn btn-dark"
+                                    disabled="@_isSavingLead">
+                                @(_isSavingLead ? "Gönderiliyor..." : "Gönder")
+                            </button>
+
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string slug { get; set; } = string.Empty;
+
+    private Listing? _listing;
+    private string? _selectedImage;
+    private string? _message;
+
+    private Lead _lead = new();
+
+    private bool _isLoading = true;
+    private bool _isSavingLead;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _listing = await Db.Listings
+            .Include(x => x.Agency)
+            .Include(x => x.Images)
+            .FirstOrDefaultAsync(x => x.Slug == slug);
+
+        if (_listing is not null)
+        {
+            _selectedImage = !string.IsNullOrWhiteSpace(_listing.CoverImageUrl)
+                ? _listing.CoverImageUrl
+                : _listing.Images
+                    .OrderBy(x => x.DisplayOrder)
+                    .FirstOrDefault()?.ImageUrl;
+        }
+
+        _isLoading = false;
+    }
+
+    private void SelectImage(string imageUrl)
+    {
+        _selectedImage = imageUrl;
+    }
+
+    private async Task SaveLead()
+    {
+        if (_listing is null || _isSavingLead)
+            return;
+
+        if (string.IsNullOrWhiteSpace(_lead.FullName) ||
+            string.IsNullOrWhiteSpace(_lead.Phone))
+        {
+            _message = "Ad soyad ve telefon zorunludur.";
+            return;
+        }
+
+        _isSavingLead = true;
+        _message = null;
+
+        try
+        {
+            _lead.AgencyId = _listing.AgencyId;
+            _lead.ListingId = _listing.Id;
+            _lead.Status = "New";
+            _lead.CreatedAt = DateTime.UtcNow;
+
+            Db.Leads.Add(_lead);
+            await Db.SaveChangesAsync();
+
+            _message = "Talebiniz başarıyla gönderildi.";
+            _lead = new Lead();
+        }
+        catch (Exception ex)
+        {
+            _message = $"Hata oluştu: {ex.Message}";
+        }
+        finally
+        {
+            _isSavingLead = false;
+        }
+    }
+
+    private void OpenWhatsApp()
+    {
+        if (_listing?.Agency is null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(_listing.Agency.WhatsAppNumber))
+            return;
+
+        var phone = _listing.Agency.WhatsAppNumber
+            .Replace(" ", "")
+            .Replace("(", "")
+            .Replace(")", "")
+            .Replace("-", "")
+            .Replace("+", "");
+
+        var text = Uri.EscapeDataString(
+            $"Merhaba, {_listing.Title} ilanı hakkında bilgi almak istiyorum."
+        );
+
+        Nav.NavigateTo($"https://wa.me/{phone}?text={text}", forceLoad: true);
+    }
+
+    private void GoToAgency()
+    {
+        if (_listing?.Agency is null ||
+            string.IsNullOrWhiteSpace(_listing.Agency.Slug))
+            return;
+
+        Nav.NavigateTo($"/agency/{_listing.Agency.Slug}");
+    }
+}

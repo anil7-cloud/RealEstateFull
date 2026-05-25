@@ -1,0 +1,226 @@
+@page "/admin/listings"
+
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+
+@using RealEstateApp.Web.Models
+
+@attribute [Authorize]
+
+@inject AppDbContext Db
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h3>İlan Yönetimi</h3>
+
+<div class="mb-3">
+
+    <button class="btn btn-primary"
+            @onclick="GoToAdd">
+
+        Yeni İlan Ekle
+
+    </button>
+
+</div>
+
+@if (_isLoading)
+{
+    <p>Yükleniyor...</p>
+}
+else if (_agency is null)
+{
+    <div class="alert alert-warning">
+        Bu kullanıcıya bağlı emlak ofisi bulunamadı.
+    </div>
+
+    <button class="btn btn-dark"
+            @onclick="CreateAgency">
+
+        Ofis Oluştur
+
+    </button>
+}
+else if (_listings.Count == 0)
+{
+    <div class="alert alert-info">
+        Henüz ilan yok.
+    </div>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+
+        <thead>
+
+            <tr>
+
+                <th>Görsel</th>
+
+                <th>Başlık</th>
+
+                <th>Şehir</th>
+
+                <th>Fiyat</th>
+
+                <th>İşlem</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @foreach (var listing in _listings)
+            {
+                <tr>
+
+                    <td style="width:120px;">
+
+                        @if (!string.IsNullOrWhiteSpace(listing.CoverImageUrl))
+                        {
+                            <img src="@listing.CoverImageUrl"
+                                 style="width:100px;
+                                        height:70px;
+                                        object-fit:cover;
+                                        border-radius:6px;" />
+                        }
+
+                    </td>
+
+                    <td>
+                        @listing.Title
+                    </td>
+
+                    <td>
+                        @listing.City
+                    </td>
+
+                    <td>
+                        @listing.Price.ToString("N0") ₺
+                    </td>
+
+                    <td>
+
+                        <div class="d-flex gap-2">
+
+                            <button class="btn btn-dark btn-sm"
+                                    @onclick="() => GoToDetail(listing.Slug)">
+
+                                Detay
+
+                            </button>
+
+                            <button class="btn btn-primary btn-sm"
+                                    @onclick="() => GoToEdit(listing.Id)">
+
+                                Düzenle
+
+                            </button>
+
+                            <button class="btn btn-danger btn-sm"
+                                    @onclick="() => DeleteListing(listing.Id)">
+
+                                Sil
+
+                            </button>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+}
+
+@code {
+
+    private List<Listing> _listings = new();
+
+    private RealEstateApp.Web.Models.Agency? _agency;
+
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState =
+            await AuthStateProvider
+                .GetAuthenticationStateAsync();
+
+        var user =
+            authState.User;
+
+        var userId =
+            user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            _agency =
+                await Db.Agencies
+                    .FirstOrDefaultAsync(
+                        x => x.IdentityUserId == userId
+                    );
+
+            if (_agency is not null)
+            {
+                _listings =
+                    await Db.Listings
+                        .Where(x => x.AgencyId == _agency.Id)
+                        .OrderByDescending(x => x.Id)
+                        .ToListAsync();
+            }
+        }
+
+        _isLoading = false;
+    }
+
+    private void GoToAdd()
+    {
+        Nav.NavigateTo("/admin/listings/add");
+    }
+
+    private void GoToEdit(int id)
+    {
+        Nav.NavigateTo($"/admin/listings/edit/{id}");
+    }
+
+    private void GoToDetail(string slug)
+    {
+        Nav.NavigateTo($"/admin/listings/detail/{slug}");
+    }
+
+    private void CreateAgency()
+    {
+        Nav.NavigateTo("/admin/agency/create");
+    }
+
+    private async Task DeleteListing(int id)
+    {
+        var listing =
+            await Db.Listings
+                .Include(x => x.Images)
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+        if (listing is null)
+            return;
+
+        if (listing.Images.Any())
+        {
+            Db.ListingImages.RemoveRange(listing.Images);
+        }
+
+        Db.Listings.Remove(listing);
+
+        await Db.SaveChangesAsync();
+
+        _listings.Remove(listing);
+
+        StateHasChanged();
+    }
+}

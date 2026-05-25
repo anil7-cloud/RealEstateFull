@@ -1,0 +1,187 @@
+@page "/auth/register"
+
+@using System.ComponentModel.DataAnnotations
+
+@using Microsoft.AspNetCore.Identity
+
+@using RealEstateApp.Web.Models
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager Nav
+
+<h3>Kayıt Ol</h3>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="alert alert-info">
+        @_message
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-5">
+
+        <EditForm Model="_model"
+                  OnValidSubmit="RegisterUser"
+                  FormName="RegisterForm">
+
+            <DataAnnotationsValidator />
+
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label class="form-label">
+                    Ad Soyad
+                </label>
+
+                <InputText class="form-control"
+                           @bind-Value="_model.FullName" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">
+                    Email
+                </label>
+
+                <InputText class="form-control"
+                           @bind-Value="_model.Email" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">
+                    Şifre
+                </label>
+
+                <InputText type="password"
+                           class="form-control"
+                           @bind-Value="_model.Password" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">
+                    Şifre Tekrar
+                </label>
+
+                <InputText type="password"
+                           class="form-control"
+                           @bind-Value="_model.ConfirmPassword" />
+            </div>
+
+            <button type="submit"
+                    class="btn btn-dark"
+                    disabled="@_isSaving">
+
+                @(_isSaving
+                    ? "Kaydediliyor..."
+                    : "Kayıt Ol")
+
+            </button>
+
+        </EditForm>
+
+    </div>
+</div>
+
+@code {
+
+    private RegisterModel _model = new();
+
+    private string? _message;
+
+    private bool _isSaving;
+
+    private async Task RegisterUser()
+    {
+        if (_isSaving)
+            return;
+
+        _isSaving = true;
+
+        _message = null;
+
+        try
+        {
+            var exists =
+                await UserManager.FindByEmailAsync(
+                    _model.Email.Trim()
+                );
+
+            if (exists is not null)
+            {
+                _message =
+                    "Bu email zaten kayıtlı.";
+
+                return;
+            }
+
+            var user = new ApplicationUser
+            {
+                UserName = _model.Email.Trim(),
+                Email = _model.Email.Trim(),
+                FullName = _model.FullName.Trim(),
+                EmailConfirmed = true
+            };
+
+            var result =
+                await UserManager.CreateAsync(
+                    user,
+                    _model.Password
+                );
+
+            if (!result.Succeeded)
+            {
+                _message =
+                    string.Join(
+                        ", ",
+                        result.Errors.Select(x => x.Description)
+                    );
+
+                return;
+            }
+
+            // DEFAULT ROLE
+
+            await UserManager.AddToRoleAsync(
+                user,
+                "User"
+            );
+
+            // AUTO LOGIN
+
+            await SignInManager.SignInAsync(
+                user,
+                isPersistent: false
+            );
+
+            Nav.NavigateTo("/profile");
+        }
+        catch (Exception ex)
+        {
+            _message =
+                $"Hata oluştu: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    public class RegisterModel
+    {
+        [Required]
+        public string FullName { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [MinLength(6)]
+        public string Password { get; set; } = string.Empty;
+
+        [Required]
+        [Compare(nameof(Password))]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

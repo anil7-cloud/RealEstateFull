@@ -1,0 +1,224 @@
+@page "/listings/search"
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.EntityFrameworkCore
+@using RealEstateApp.Web.Models
+
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<h3>İlan Ara</h3>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+
+            <div class="col-md-3">
+                <label class="form-label">Şehir</label>
+
+                <InputText class="form-control"
+                           @bind-Value="_city" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">İlçe</label>
+
+                <InputText class="form-control"
+                           @bind-Value="_district" />
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Min Fiyat</label>
+
+                <InputNumber class="form-control"
+                             @bind-Value="_minPrice" />
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Max Fiyat</label>
+
+                <InputNumber class="form-control"
+                             @bind-Value="_maxPrice" />
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button"
+                        class="btn btn-dark w-100"
+                        @onclick="SearchListings">
+                    Ara
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@if (_isLoading)
+{
+    <p>İlanlar yükleniyor...</p>
+}
+else if (_listings.Count == 0)
+{
+    <div class="alert alert-warning">
+        Sonuç bulunamadı.
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var listing in _listings)
+        {
+            <div class="col-md-4 mb-4">
+
+                <div class="card h-100 shadow-sm">
+
+                    @if (!string.IsNullOrWhiteSpace(listing.CoverImageUrl))
+                    {
+                        <img src="@listing.CoverImageUrl"
+                             class="card-img-top"
+                             style="height:220px; object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <div class="bg-light d-flex align-items-center justify-content-center"
+                             style="height:220px;">
+                            Görsel Yok
+                        </div>
+                    }
+
+                    <div class="card-body d-flex flex-column">
+
+                        <h5 class="card-title">
+                            @listing.Title
+                        </h5>
+
+                        <div class="text-primary fw-bold fs-5 mb-2">
+                            @listing.Price.ToString("N0") ₺
+                        </div>
+
+                        <div class="mb-2">
+                            @listing.City / @listing.District
+                        </div>
+
+                        <div class="text-muted mb-3">
+                            @GetShortDescription(listing.Description)
+                        </div>
+
+                        <button type="button"
+                                class="btn btn-outline-dark mt-auto"
+                                @onclick="() => GoToDetail(listing.Slug)">
+                            Detaya Git
+                        </button>
+
+                    </div>
+                </div>
+
+            </div>
+        }
+    </div>
+}
+
+@code {
+
+    private List<Listing> _listings = new();
+
+    private string? _city;
+    private string? _district;
+
+    private decimal? _minPrice;
+    private decimal? _maxPrice;
+
+    private bool _isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadListings();
+    }
+
+    private async Task LoadListings()
+    {
+        _isLoading = true;
+
+        try
+        {
+            _listings = await Db.Listings
+                .OrderByDescending(x => x.Id)
+                .ToListAsync();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SearchListings()
+    {
+        _isLoading = true;
+
+        try
+        {
+            var query = Db.Listings.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(_city))
+            {
+                var city = _city.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.City.ToLower().Contains(city));
+            }
+
+            if (!string.IsNullOrWhiteSpace(_district))
+            {
+                var district = _district.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.District.ToLower().Contains(district));
+            }
+
+            if (_minPrice.HasValue)
+            {
+                query = query.Where(x =>
+                    x.Price >= _minPrice.Value);
+            }
+
+            if (_maxPrice.HasValue)
+            {
+                query = query.Where(x =>
+                    x.Price <= _maxPrice.Value);
+            }
+
+            _listings = await query
+                .OrderByDescending(x => x.Id)
+                .ToListAsync();
+        }
+        catch
+        {
+            _listings = new List<Listing>();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void GoToDetail(string slug)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+            return;
+
+        Nav.NavigateTo($"/listings/{slug}");
+    }
+
+    private static string GetShortDescription(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+            return "Açıklama bulunmuyor.";
+
+        if (description.Length <= 100)
+            return description;
+
+        return description[..100] + "...";
+    }
+}

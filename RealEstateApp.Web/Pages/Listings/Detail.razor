@@ -1,0 +1,272 @@
+@page "/admin/listings/detail/{slug}"
+
+@using Microsoft.EntityFrameworkCore
+@using RealEstateApp.Web.Models
+
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+@if (_isLoading)
+{
+    <div class="container mt-4">
+        <p>Yükleniyor...</p>
+    </div>
+}
+else if (_listing is null)
+{
+    <div class="container mt-4">
+
+        <div class="alert alert-danger">
+            İlan bulunamadı.
+        </div>
+
+        <button class="btn btn-secondary"
+                @onclick="GoBack">
+
+            Geri Dön
+
+        </button>
+
+    </div>
+}
+else
+{
+    <div class="container mt-4">
+
+        <!-- TOP -->
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+
+            <h2>İlan Detayı</h2>
+
+            <div class="d-flex gap-2">
+
+                <button class="btn btn-primary"
+                        @onclick="EditListing">
+
+                    Düzenle
+
+                </button>
+
+                <button class="btn btn-secondary"
+                        @onclick="GoBack">
+
+                    Geri Dön
+
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <!-- IMAGES -->
+
+            <div class="col-lg-7">
+
+                @if (!string.IsNullOrWhiteSpace(_selectedImage))
+                {
+                    <img src="@_selectedImage"
+                         class="img-fluid rounded shadow-sm mb-3"
+                         style="width:100%;
+                                height:500px;
+                                object-fit:cover;" />
+                }
+
+                @if (_listing.Images.Any())
+                {
+                    <div class="d-flex flex-wrap gap-2">
+
+                        @foreach (var image in _listing.Images
+                            .OrderBy(x => x.DisplayOrder))
+                        {
+                            <img src="@image.ImageUrl"
+                                 class="@GetImageClass(image.ImageUrl)"
+                                 style="width:110px;
+                                        height:80px;
+                                        object-fit:cover;
+                                        cursor:pointer;
+                                        border-radius:8px;"
+
+                                 @onclick="() => SelectImage(image.ImageUrl)" />
+                        }
+
+                    </div>
+                }
+
+            </div>
+
+            <!-- DETAIL -->
+
+            <div class="col-lg-5">
+
+                <div class="card shadow-sm border-0 mb-3">
+
+                    <div class="card-body">
+
+                        <h3 class="mb-3">
+                            @_listing.Title
+                        </h3>
+
+                        <h2 class="text-primary mb-4">
+                            @_listing.Price.ToString("N0") ₺
+                        </h2>
+
+                        <ul class="list-group">
+
+                            <li class="list-group-item">
+                                <strong>Şehir:</strong>
+                                @_listing.City
+                            </li>
+
+                            <li class="list-group-item">
+                                <strong>İlçe:</strong>
+                                @_listing.District
+                            </li>
+
+                            <li class="list-group-item">
+                                <strong>Mahalle:</strong>
+                                @_listing.Neighborhood
+                            </li>
+
+                            <li class="list-group-item">
+                                <strong>Oda Sayısı:</strong>
+                                @_listing.RoomCount
+                            </li>
+
+                            <li class="list-group-item">
+                                <strong>Brüt m²:</strong>
+                                @_listing.GrossM2
+                            </li>
+
+                            <li class="list-group-item">
+                                <strong>Slug:</strong>
+                                @_listing.Slug
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+                </div>
+
+                <!-- AGENCY -->
+
+                @if (_listing.Agency is not null)
+                {
+                    <div class="card shadow-sm border-0 mb-3">
+
+                        <div class="card-body">
+
+                            <h5>Emlak Ofisi</h5>
+
+                            <p class="mb-1">
+                                <strong>@_listing.Agency.Name</strong>
+                            </p>
+
+                            <p class="mb-1">
+                                @_listing.Agency.City /
+                                @_listing.Agency.District
+                            </p>
+
+                            <p class="mb-0">
+                                @_listing.Agency.Phone
+                            </p>
+
+                        </div>
+
+                    </div>
+                }
+
+                <!-- DESCRIPTION -->
+
+                <div class="card shadow-sm border-0">
+
+                    <div class="card-body">
+
+                        <h5>Açıklama</h5>
+
+                        @if (string.IsNullOrWhiteSpace(_listing.Description))
+                        {
+                            <p>
+                                Açıklama bulunmuyor.
+                            </p>
+                        }
+                        else
+                        {
+                            <p>
+                                @_listing.Description
+                            </p>
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public string slug { get; set; } = string.Empty;
+
+    private Listing? _listing;
+
+    private string? _selectedImage;
+
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _listing = await Db.Listings
+            .Include(x => x.Agency)
+            .Include(x => x.Images)
+            .FirstOrDefaultAsync(x => x.Slug == slug);
+
+        if (_listing is not null)
+        {
+            _selectedImage =
+                !string.IsNullOrWhiteSpace(_listing.CoverImageUrl)
+                    ? _listing.CoverImageUrl
+                    : _listing.Images
+                        .OrderBy(x => x.DisplayOrder)
+                        .FirstOrDefault()?.ImageUrl;
+        }
+
+        _isLoading = false;
+    }
+
+    private void SelectImage(string imageUrl)
+    {
+        _selectedImage = imageUrl;
+    }
+
+    private string GetImageClass(string imageUrl)
+    {
+        if (_selectedImage == imageUrl)
+        {
+            return "border border-primary border-3";
+        }
+
+        return "";
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/admin/listings");
+    }
+
+    private void EditListing()
+    {
+        if (_listing is null)
+            return;
+
+        Nav.NavigateTo($"/admin/listings/edit/{_listing.Id}");
+    }
+}

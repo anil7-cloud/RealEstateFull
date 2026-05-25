@@ -1,0 +1,54 @@
+@page "/admin/{AgencyId:int}/leads"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext Db
+
+<h3>Leadlerim</h3>
+
+@if (_leads is null)
+{
+    <p>Yükleniyor...</p>
+}
+else if (_leads.Count == 0)
+{
+    <p>Bu ofise ait lead yok.</p>
+}
+else
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Ad</th>
+                <th>Telefon</th>
+                <th>Mesaj</th>
+                <th>Durum</th>
+                <th>Tarih</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in _leads)
+            {
+                <tr>
+                    <td>@item.FullName</td>
+                    <td>@item.Phone</td>
+                    <td>@item.Message</td>
+                    <td>@item.Status</td>
+                    <td>@item.CreatedAt.ToLocalTime()</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter] public int AgencyId { get; set; }
+
+    private List<Lead>? _leads;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _leads = await Db.Leads
+            .Where(x => x.AgencyId == AgencyId)
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync();
+    }
+}

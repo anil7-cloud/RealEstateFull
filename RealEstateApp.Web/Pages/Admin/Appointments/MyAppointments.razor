@@ -1,0 +1,54 @@
+@page "/admin/{AgencyId:int}/appointments"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext Db
+
+<h3>Randevularım</h3>
+
+@if (_appointments is null)
+{
+    <p>Yükleniyor...</p>
+}
+else if (_appointments.Count == 0)
+{
+    <p>Bu ofise ait randevu yok.</p>
+}
+else
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Ad</th>
+                <th>Telefon</th>
+                <th>Tarih</th>
+                <th>Saat</th>
+                <th>Durum</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in _appointments)
+            {
+                <tr>
+                    <td>@item.FullName</td>
+                    <td>@item.Phone</td>
+                    <td>@item.Date.ToShortDateString()</td>
+                    <td>@item.Time</td>
+                    <td>@item.Status</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter] public int AgencyId { get; set; }
+
+    private List<Appointment>? _appointments;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _appointments = await Db.Appointments
+            .Where(x => x.AgencyId == AgencyId)
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync();
+    }
+}

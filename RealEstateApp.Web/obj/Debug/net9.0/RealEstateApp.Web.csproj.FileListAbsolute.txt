@@ -1,0 +1,7 @@
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.csproj.AssemblyReference.cache
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/rpswa.dswa.cache.json
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.GeneratedMSBuildEditorConfig.editorconfig
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.AssemblyInfoInputs.cache
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.AssemblyInfo.cs
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.csproj.CoreCompileInputs.cache
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.MvcApplicationPartsAssemblyInfo.cache

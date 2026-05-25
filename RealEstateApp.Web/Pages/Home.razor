@@ -1,0 +1,182 @@
+@page "/"
+
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@rendermode InteractiveServer
+
+@using Microsoft.EntityFrameworkCore
+@using RealEstateApp.Web.Models
+
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<section class="bg-light rounded-4 p-5 mb-5">
+    <div class="row align-items-center">
+
+        <div class="col-md-7">
+            <h1 class="display-5 fw-bold">
+                Modern Emlak İlan ve Lead Yönetim Platformu
+            </h1>
+
+            <p class="lead mt-3">
+                Emlak ofisleri için hızlı ilan yönetimi, müşteri talep toplama ve WhatsApp iletişim sistemi.
+            </p>
+
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn btn-dark btn-lg" @onclick="GoToListings">
+                    İlanları Gör
+                </button>
+
+                <button class="btn btn-outline-dark btn-lg" @onclick="GoToCreateAgency">
+                    Emlak Ofisi Oluştur
+                </button>
+            </div>
+        </div>
+
+        <div class="col-md-5 mt-4 mt-md-0">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5>Platform Özeti</h5>
+
+                    <ul class="list-unstyled mb-0">
+                        <li>✅ İlan yönetimi</li>
+                        <li>✅ Lead toplama</li>
+                        <li>✅ WhatsApp yönlendirme</li>
+                        <li>✅ Emlak ofisi profili</li>
+                        <li>✅ Admin panel</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<section class="mb-5">
+    <div class="row">
+
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h5>Hızlı İlan Yönetimi</h5>
+                    <p>
+                        İlan ekle, düzenle, galeri görselleri yükle ve anında yayına al.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h5>Müşteri Talepleri</h5>
+                    <p>
+                        İlanlardan gelen müşteri taleplerini panel üzerinden takip et.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h5>WhatsApp Entegrasyonu</h5>
+                    <p>
+                        Ziyaretçiler tek tıkla emlak ofisine WhatsApp üzerinden ulaşsın.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<section>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Son İlanlar</h2>
+
+        <button type="button"
+                class="btn btn-outline-dark"
+                @onclick="GoToListings">
+            Tüm İlanları Gör
+        </button>
+    </div>
+
+    @if (_isLoading)
+    {
+        <p>Yükleniyor...</p>
+    }
+    else if (_listings.Count == 0)
+    {
+        <div class="alert alert-warning">
+            Henüz ilan bulunmuyor.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var listing in _listings)
+            {
+                <div class="col-md-3 mb-4">
+                    <div class="card h-100 shadow-sm border-0">
+
+                        @if (!string.IsNullOrWhiteSpace(listing.CoverImageUrl))
+                        {
+                            <img src="@listing.CoverImageUrl"
+                                 class="card-img-top"
+                                 style="height:180px; object-fit:cover;" />
+                        }
+
+                        <div class="card-body d-flex flex-column">
+                            <h6>@listing.Title</h6>
+
+                            <p class="text-primary fw-bold">
+                                @listing.Price.ToString("N0") ₺
+                            </p>
+
+                            <p>
+                                @listing.City / @listing.District
+                            </p>
+
+                            <button type="button"
+                                    class="btn btn-dark mt-auto"
+                                    @onclick="() => GoToDetail(listing.Slug)">
+                                Detay
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private List<Listing> _listings = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _listings = await Db.Listings
+            .OrderByDescending(x => x.Id)
+            .Take(8)
+            .ToListAsync();
+
+        _isLoading = false;
+    }
+
+    private void GoToDetail(string slug)
+    {
+        Nav.NavigateTo($"/listings/{slug}");
+    }
+
+    private void GoToListings()
+    {
+        Nav.NavigateTo("/listings");
+    }
+
+    private void GoToCreateAgency()
+    {
+        Nav.NavigateTo("/admin/agency/create");
+    }
+}

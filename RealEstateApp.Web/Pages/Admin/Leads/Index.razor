@@ -1,0 +1,297 @@
+@page "/admin/leads"
+@page "/favorites"
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@rendermode InteractiveServer
+
+@using System.Security.Claims
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+
+@using RealEstateApp.Web.Models
+
+@attribute [Authorize]
+
+@inject AppDbContext Db
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h3>Müşteri Talepleri</h3>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="alert alert-info">
+        @_message
+    </div>
+}
+
+@if (_isLoading)
+{
+    <p>Yükleniyor...</p>
+}
+else if (_agency is null)
+{
+    <div class="alert alert-warning">
+        Önce emlak ofisi oluşturmalısınız.
+    </div>
+
+    <button class="btn btn-dark"
+            @onclick="CreateAgency">
+
+        Ofis Oluştur
+
+    </button>
+}
+else if (_leads.Count == 0)
+{
+    <div class="alert alert-warning">
+        Henüz müşteri talebi bulunmuyor.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+
+        <table class="table table-bordered table-striped align-middle">
+
+            <thead>
+
+                <tr>
+
+                    <th>Ad Soyad</th>
+
+                    <th>Telefon</th>
+
+                    <th>İlan</th>
+
+                    <th>Mesaj</th>
+
+                    <th>Durum</th>
+
+                    <th>Tarih</th>
+
+                    <th>İşlem</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                @foreach (var lead in _leads)
+                {
+                    <tr>
+
+                        <td>
+                            @lead.FullName
+                        </td>
+
+                        <td>
+                            @lead.Phone
+                        </td>
+
+                        <td>
+                            @(lead.Listing?.Title ?? "-")
+                        </td>
+
+                        <td>
+                            @(string.IsNullOrWhiteSpace(lead.Message)
+                                ? "-"
+                                : lead.Message)
+                        </td>
+
+                        <td>
+
+                            <select class="form-select"
+                                    value="@lead.Status"
+                                    @onchange="async (e) => await ChangeStatus(lead, e.Value?.ToString())">
+
+                                <option value="New">
+                                    New
+                                </option>
+
+                                <option value="Called">
+                                    Called
+                                </option>
+
+                                <option value="Closed">
+                                    Closed
+                                </option>
+
+                            </select>
+
+                        </td>
+
+                        <td>
+                            @lead.CreatedAt
+                                .ToLocalTime()
+                                .ToString("dd.MM.yyyy HH:mm")
+                        </td>
+
+                        <td>
+
+                            <button type="button"
+                                    class="btn btn-danger btn-sm"
+                                    @onclick="() => DeleteLead(lead.Id)">
+
+                                Sil
+
+                            </button>
+
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+}
+
+@code {
+
+    private List<Lead> _leads = new();
+
+    private RealEstateApp.Web.Models.Agency? _agency;
+
+    private string? _message;
+
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAgencyAndLeads();
+    }
+
+    private async Task LoadAgencyAndLeads()
+    {
+        try
+        {
+            _isLoading = true;
+
+            var authState =
+                await AuthStateProvider
+                    .GetAuthenticationStateAsync();
+
+            var user =
+                authState.User;
+
+            var userId =
+                user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return;
+            }
+
+            _agency =
+                await Db.Agencies
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(
+                        x => x.IdentityUserId == userId
+                    );
+
+            if (_agency is null)
+            {
+                return;
+            }
+
+            _leads =
+                await Db.Leads
+                    .Include(x => x.Listing)
+                    .Where(x => x.AgencyId == _agency.Id)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _message =
+                $"Hata oluştu: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ChangeStatus(
+        Lead lead,
+        string? newStatus)
+    {
+        try
+        {
+            if (_agency is null)
+                return;
+
+            if (string.IsNullOrWhiteSpace(newStatus))
+                return;
+
+            var dbLead =
+                await Db.Leads
+                    .FirstOrDefaultAsync(
+                        x =>
+                            x.Id == lead.Id &&
+                            x.AgencyId == _agency.Id
+                    );
+
+            if (dbLead is null)
+                return;
+
+            dbLead.Status = newStatus;
+
+            await Db.SaveChangesAsync();
+
+            lead.Status = newStatus;
+
+            _message =
+                "Lead durumu güncellendi.";
+        }
+        catch (Exception ex)
+        {
+            _message =
+                $"Hata oluştu: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteLead(int leadId)
+    {
+        try
+        {
+            if (_agency is null)
+                return;
+
+            var lead =
+                await Db.Leads
+                    .FirstOrDefaultAsync(
+                        x =>
+                            x.Id == leadId &&
+                            x.AgencyId == _agency.Id
+                    );
+
+            if (lead is null)
+                return;
+
+            Db.Leads.Remove(lead);
+
+            await Db.SaveChangesAsync();
+
+            _message =
+                "Lead silindi.";
+
+            await LoadAgencyAndLeads();
+        }
+        catch (Exception ex)
+        {
+            _message =
+                $"Hata oluştu: {ex.Message}";
+        }
+    }
+
+    private void CreateAgency()
+    {
+        Nav.NavigateTo("/admin/agency/create");
+    }
+}

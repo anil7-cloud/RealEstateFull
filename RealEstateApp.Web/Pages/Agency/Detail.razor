@@ -1,0 +1,99 @@
+@page "/agency/{slug}"
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@rendermode InteractiveServer
+
+@using Microsoft.EntityFrameworkCore
+@using RealEstateApp.Web.Models
+
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+@if (_agency is null)
+{
+    <p>Ofis bulunamadı veya yükleniyor...</p>
+}
+else
+{
+    <div class="container mt-4">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h2>@_agency.Name</h2>
+                <p><strong>Şehir:</strong> @_agency.City</p>
+                <p><strong>İlçe:</strong> @_agency.District</p>
+                <p><strong>Telefon:</strong> @_agency.Phone</p>
+                <p><strong>WhatsApp:</strong> @_agency.WhatsAppNumber</p>
+                <p>@_agency.Description</p>
+            </div>
+        </div>
+
+        <h4>Ofisin İlanları</h4>
+
+        @if (_listings.Count == 0)
+        {
+            <p>Bu ofise ait ilan bulunmuyor.</p>
+        }
+        else
+        {
+            <div class="row">
+                @foreach (var listing in _listings)
+                {
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            @if (!string.IsNullOrWhiteSpace(listing.CoverImageUrl))
+                            {
+                                <img src="@listing.CoverImageUrl"
+                                     class="card-img-top"
+                                     style="height:220px; object-fit:cover;" />
+                            }
+
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title">@listing.Title</h5>
+
+                                <p class="card-text text-primary fw-bold">
+                                    @listing.Price.ToString("N0") ₺
+                                </p>
+
+                                <p class="card-text">
+                                    @listing.City / @listing.District
+                                </p>
+
+                                <button type="button"
+                                        class="btn btn-dark mt-auto"
+                                        @onclick="() => GoToListing(listing.Slug)">
+                                    İlan Detayı
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string slug { get; set; } = string.Empty;
+
+    private Agency? _agency;
+    private List<Listing> _listings = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _agency = await Db.Agencies
+            .FirstOrDefaultAsync(x => x.Slug == slug);
+
+        if (_agency is not null)
+        {
+            _listings = await Db.Listings
+                .Where(x => x.AgencyId == _agency.Id)
+                .OrderByDescending(x => x.Id)
+                .ToListAsync();
+        }
+    }
+
+    private void GoToListing(string listingSlug)
+    {
+        Nav.NavigateTo($"/listings/{listingSlug}");
+    }
+}

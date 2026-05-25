@@ -1,0 +1,253 @@
+@page "/admin/dashboard"
+
+@using System.Security.Claims
+
+@using Microsoft.AspNetCore.Authorization
+
+@using Microsoft.AspNetCore.Components.Authorization
+
+@using Microsoft.EntityFrameworkCore
+
+@attribute [Authorize]
+
+@inject AppDbContext Db
+
+@inject NavigationManager Nav
+
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h3>Admin Panel</h3>
+
+@if (!_loaded)
+
+{
+
+    <p>Yükleniyor...</p>
+
+}
+
+else if (_agency is null)
+
+{
+
+    <div class="alert alert-warning">
+
+        Henüz emlak ofisiniz yok.
+
+    </div>
+
+    <button class="btn btn-dark"
+
+            @onclick="CreateAgency">
+
+        Ofis Oluştur
+
+    </button>
+
+}
+
+else
+
+{
+
+    <div class="row">
+
+        <!-- OFİS -->
+
+        <div class="col-md-4 mb-3">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <h5>Ofis</h5>
+
+                    <h3>@_agency.Name</h3>
+
+                    <p>
+
+                        @_agency.City / @_agency.District
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- İLAN -->
+
+        <div class="col-md-4 mb-3">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <h5>İlan Sayısı</h5>
+
+                    <h3>@_listingCount</h3>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- LEAD -->
+
+        <div class="col-md-4 mb-3">
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <h5>Lead Sayısı</h5>
+
+                    <h3>@_leadCount</h3>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+
+        <button class="btn btn-primary"
+
+                @onclick="GoToListings">
+
+            İlan Yönetimi
+
+        </button>
+
+        <button class="btn btn-dark"
+
+                @onclick="GoToAddListing">
+
+            Yeni İlan Ekle
+
+        </button>
+
+        <button class="btn btn-success"
+
+                @onclick="GoToLeads">
+
+            Talepler
+
+        </button>
+
+    </div>
+
+}
+
+@code {
+
+    private RealEstateApp.Web.Models.Agency? _agency;
+
+    private int _listingCount;
+
+    private int _leadCount;
+
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+
+    {
+
+        var authState =
+
+            await AuthStateProvider
+
+                .GetAuthenticationStateAsync();
+
+        var user =
+
+            authState.User;
+
+        var userId =
+
+            user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!string.IsNullOrWhiteSpace(userId))
+
+        {
+
+            _agency =
+
+                await Db.Agencies
+
+                    .FirstOrDefaultAsync(
+
+                        x => x.IdentityUserId == userId
+
+                    );
+
+            if (_agency is not null)
+
+            {
+
+                _listingCount =
+
+                    await Db.Listings
+
+                        .CountAsync(
+
+                            x => x.AgencyId == _agency.Id
+
+                        );
+
+                _leadCount =
+
+                    await Db.Leads
+
+                        .CountAsync(
+
+                            x => x.AgencyId == _agency.Id
+
+                        );
+
+            }
+
+        }
+
+        _loaded = true;
+
+    }
+
+    private void CreateAgency()
+
+    {
+
+        Nav.NavigateTo("/admin/agency/create");
+
+    }
+
+    private void GoToListings()
+
+    {
+
+        Nav.NavigateTo("/admin/listings");
+
+    }
+
+    private void GoToAddListing()
+
+    {
+
+        Nav.NavigateTo("/admin/listings/add");
+
+    }
+
+    private void GoToLeads()
+
+    {
+
+        Nav.NavigateTo("/admin/leads");
+
+    }
+
+}

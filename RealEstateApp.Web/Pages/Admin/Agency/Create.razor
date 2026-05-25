@@ -1,0 +1,248 @@
+@page "/admin/agency/create"
+
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+
+@using RealEstateApp.Web.Models
+
+@attribute [Authorize]
+
+@inject AppDbContext Db
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h3>Emlak Ofisi Oluştur</h3>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="alert alert-info">
+        @_message
+    </div>
+}
+
+@if (_alreadyExists)
+{
+    <div class="alert alert-warning">
+        Bu kullanıcıya ait emlak ofisi zaten mevcut.
+    </div>
+
+    <button class="btn btn-dark"
+            @onclick="GoToDashboard">
+        Admin Paneline Git
+    </button>
+}
+else
+{
+    <EditForm Model="_agency"
+              OnValidSubmit="CreateAgency"
+              FormName="CreateAgencyForm">
+
+        <DataAnnotationsValidator />
+
+        <ValidationSummary />
+
+        <div class="mb-3">
+
+            <label>Ofis Adı</label>
+
+            <InputText class="form-control"
+                       @bind-Value="_agency.Name" />
+
+        </div>
+
+        <div class="mb-3">
+
+            <label>Şehir</label>
+
+            <InputText class="form-control"
+                       @bind-Value="_agency.City" />
+
+        </div>
+
+        <div class="mb-3">
+
+            <label>İlçe</label>
+
+            <InputText class="form-control"
+                       @bind-Value="_agency.District" />
+
+        </div>
+
+        <div class="mb-3">
+
+            <label>Telefon</label>
+
+            <InputText class="form-control"
+                       @bind-Value="_agency.Phone" />
+
+        </div>
+
+        <div class="mb-3">
+
+            <label>WhatsApp</label>
+
+            <InputText class="form-control"
+                       @bind-Value="_agency.WhatsAppNumber" />
+
+        </div>
+
+        <div class="mb-3">
+
+            <label>Açıklama</label>
+
+            <InputTextArea class="form-control"
+                           @bind-Value="_agency.Description" />
+
+        </div>
+
+        <button type="submit"
+                class="btn btn-dark"
+                disabled="@_isSaving">
+
+            @(_isSaving
+                ? "Kaydediliyor..."
+                : "Kaydet")
+
+        </button>
+
+    </EditForm>
+}
+
+@code {
+
+    private Agency _agency = new();
+
+    private string? _message;
+
+    private bool _isSaving;
+
+    private bool _alreadyExists;
+
+    private string? _userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState =
+            await AuthStateProvider
+                .GetAuthenticationStateAsync();
+
+        var user = authState.User;
+
+        _userId =
+            user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!string.IsNullOrWhiteSpace(_userId))
+        {
+            _alreadyExists =
+                await Db.Agencies.AnyAsync(
+                    x => x.IdentityUserId == _userId
+                );
+        }
+    }
+
+    private async Task CreateAgency()
+    {
+        if (_isSaving)
+            return;
+
+        if (string.IsNullOrWhiteSpace(_userId))
+        {
+            _message = "Kullanıcı bulunamadı.";
+            return;
+        }
+
+        _isSaving = true;
+
+        _message = null;
+
+        try
+        {
+            var exists =
+                await Db.Agencies.AnyAsync(
+                    x => x.IdentityUserId == _userId
+                );
+
+            if (exists)
+            {
+                _message =
+                    "Bu kullanıcıya ait ofis zaten var.";
+
+                return;
+            }
+
+            _agency.IdentityUserId = _userId;
+
+            _agency.Slug =
+                GenerateSlug(_agency.Name);
+
+            Db.Agencies.Add(_agency);
+
+            await Db.SaveChangesAsync();
+
+            Nav.NavigateTo("/admin/dashboard");
+        }
+        catch (Exception ex)
+        {
+            _message =
+                $"Hata oluştu: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void GoToDashboard()
+    {
+        Nav.NavigateTo("/admin/dashboard");
+    }
+
+    private static string GenerateSlug(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Guid.NewGuid()
+                .ToString("N");
+        }
+
+        var slug =
+            text.Trim()
+                .ToLowerInvariant();
+
+        slug = slug
+            .Replace("ı", "i")
+            .Replace("ğ", "g")
+            .Replace("ü", "u")
+            .Replace("ş", "s")
+            .Replace("ö", "o")
+            .Replace("ç", "c");
+
+        slug =
+            System.Text.RegularExpressions.Regex
+                .Replace(
+                    slug,
+                    @"[^a-z0-9\s-]",
+                    ""
+                );
+
+        slug =
+            System.Text.RegularExpressions.Regex
+                .Replace(
+                    slug,
+                    @"\s+",
+                    "-"
+                );
+
+        slug =
+            System.Text.RegularExpressions.Regex
+                .Replace(
+                    slug,
+                    @"-+",
+                    "-"
+                );
+
+        return slug.Trim('-');
+    }
+}

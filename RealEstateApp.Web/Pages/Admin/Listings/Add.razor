@@ -1,0 +1,423 @@
+@page "/admin/listings/add"
+
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@rendermode InteractiveServer
+
+@using System.Security.Claims
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.EntityFrameworkCore
+
+@using RealEstateApp.Web.Models
+@using RealEstateApp.Web.Services
+
+@attribute [Authorize]
+
+@inject AppDbContext Db
+@inject NavigationManager Nav
+@inject ImageUploadService ImageService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h3>İlan Ekle</h3>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="alert alert-info">
+        @_message
+    </div>
+}
+
+@if (_isLoading)
+{
+    <p>Yükleniyor...</p>
+}
+else if (_agency is null)
+{
+    <div class="alert alert-warning">
+        Önce emlak ofisi oluşturmalısınız.
+    </div>
+
+    <button class="btn btn-dark"
+            @onclick="CreateAgency">
+
+        Ofis Oluştur
+
+    </button>
+}
+else
+{
+    <EditForm Model="_listing"
+              OnValidSubmit="SaveListing"
+              FormName="AddListingForm">
+
+        <DataAnnotationsValidator />
+
+        <ValidationSummary />
+
+        <!-- TITLE -->
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Başlık
+            </label>
+
+            <InputText class="form-control"
+                       @bind-Value="_listing.Title" />
+
+        </div>
+
+        <!-- PRICE -->
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Fiyat
+            </label>
+
+            <InputNumber class="form-control"
+                         @bind-Value="_listing.Price" />
+
+        </div>
+
+        <!-- CITY -->
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Şehir
+            </label>
+
+            <InputText class="form-control"
+                       @bind-Value="_listing.City" />
+
+        </div>
+
+        <!-- DISTRICT -->
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                İlçe
+            </label>
+
+            <InputText class="form-control"
+                       @bind-Value="_listing.District" />
+
+        </div>
+
+        <!-- NEIGHBORHOOD -->
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Mahalle
+            </label>
+
+            <InputText class="form-control"
+                       @bind-Value="_listing.Neighborhood" />
+
+        </div>
+
+        <!-- ROOM -->
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Oda Sayısı
+            </label>
+
+            <InputNumber class="form-control"
+                         @bind-Value="_listing.RoomCount" />
+
+        </div>
+
+        <!-- M2 -->
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Brüt m²
+            </label>
+
+            <InputNumber class="form-control"
+                         @bind-Value="_listing.GrossM2" />
+
+        </div>
+
+        <!-- COVER -->
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Kapak Görseli
+            </label>
+
+            <InputFile OnChange="HandleCoverSelected"
+                       class="form-control" />
+
+        </div>
+
+        <!-- GALLERY -->
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Galeri Görselleri
+            </label>
+
+            <InputFile OnChange="HandleGallerySelected"
+                       multiple
+                       class="form-control" />
+
+        </div>
+
+        <!-- DESCRIPTION -->
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Açıklama
+            </label>
+
+            <InputTextArea class="form-control"
+                           rows="5"
+                           @bind-Value="_listing.Description" />
+
+        </div>
+
+        <!-- BUTTON -->
+
+        <button type="submit"
+                class="btn btn-primary"
+                disabled="@_isSaving">
+
+            @(_isSaving
+                ? "Kaydediliyor..."
+                : "Kaydet")
+
+        </button>
+
+    </EditForm>
+}
+
+@code {
+
+    private Listing _listing = new();
+
+    private RealEstateApp.Web.Models.Agency? _agency;
+
+    private IBrowserFile? _coverFile;
+
+    private IReadOnlyList<IBrowserFile> _galleryFiles
+        = Array.Empty<IBrowserFile>();
+
+    private string? _message;
+
+    private bool _isSaving;
+
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAgency();
+    }
+
+    private async Task LoadAgency()
+    {
+        var authState =
+            await AuthStateProvider
+                .GetAuthenticationStateAsync();
+
+        var user =
+            authState.User;
+
+        var userId =
+            user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            _agency =
+                await Db.Agencies
+                    .FirstOrDefaultAsync(
+                        x => x.IdentityUserId == userId
+                    );
+        }
+
+        _isLoading = false;
+    }
+
+    private void HandleCoverSelected(InputFileChangeEventArgs e)
+    {
+        _coverFile = e.File;
+    }
+
+    private void HandleGallerySelected(InputFileChangeEventArgs e)
+    {
+        _galleryFiles = e.GetMultipleFiles();
+    }
+
+    private async Task SaveListing()
+    {
+        if (_isSaving)
+            return;
+
+        if (_agency is null)
+        {
+            _message = "Emlak ofisi bulunamadı.";
+            return;
+        }
+
+        _isSaving = true;
+
+        _message = null;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_listing.Title))
+            {
+                _message = "Başlık zorunludur.";
+
+                return;
+            }
+
+            _listing.AgencyId = _agency.Id;
+
+            _listing.Slug =
+                await GenerateUniqueSlug(_listing.Title);
+
+            // COVER IMAGE
+
+            if (_coverFile is not null)
+            {
+                var coverPath =
+                    await ImageService
+                        .SaveImageAsync(_coverFile);
+
+                if (!string.IsNullOrWhiteSpace(coverPath))
+                {
+                    _listing.CoverImageUrl = coverPath;
+                }
+            }
+
+            Db.Listings.Add(_listing);
+
+            await Db.SaveChangesAsync();
+
+            // GALLERY
+
+            var displayOrder = 1;
+
+            foreach (var file in _galleryFiles)
+            {
+                var imagePath =
+                    await ImageService
+                        .SaveImageAsync(file);
+
+                if (string.IsNullOrWhiteSpace(imagePath))
+                    continue;
+
+                Db.ListingImages.Add(new ListingImage
+                {
+                    ListingId = _listing.Id,
+                    ImageUrl = imagePath,
+                    DisplayOrder = displayOrder
+                });
+
+                displayOrder++;
+            }
+
+            await Db.SaveChangesAsync();
+
+            Nav.NavigateTo(
+                "/admin/listings",
+                forceLoad: true
+            );
+        }
+        catch (Exception ex)
+        {
+            _message =
+                $"Hata oluştu: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void CreateAgency()
+    {
+        Nav.NavigateTo("/admin/agency/create");
+    }
+
+    private async Task<string> GenerateUniqueSlug(string? title)
+    {
+        var baseSlug =
+            GenerateSlug(title);
+
+        var slug =
+            baseSlug;
+
+        var counter = 1;
+
+        while (await Db.Listings.AnyAsync(
+            x => x.Slug == slug))
+        {
+            slug =
+                $"{baseSlug}-{counter}";
+
+            counter++;
+        }
+
+        return slug;
+    }
+
+    private static string GenerateSlug(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Guid.NewGuid()
+                .ToString("N");
+        }
+
+        var slug =
+            text.Trim()
+                .ToLowerInvariant();
+
+        slug = slug
+            .Replace("ı", "i")
+            .Replace("ğ", "g")
+            .Replace("ü", "u")
+            .Replace("ş", "s")
+            .Replace("ö", "o")
+            .Replace("ç", "c");
+
+        slug =
+            System.Text.RegularExpressions.Regex
+                .Replace(
+                    slug,
+                    @"[^a-z0-9\s-]",
+                    ""
+                );
+
+        slug =
+            System.Text.RegularExpressions.Regex
+                .Replace(
+                    slug,
+                    @"\s+",
+                    "-"
+                );
+
+        slug =
+            System.Text.RegularExpressions.Regex
+                .Replace(
+                    slug,
+                    @"-+",
+                    "-"
+                );
+
+        return slug.Trim('-');
+    }
+}

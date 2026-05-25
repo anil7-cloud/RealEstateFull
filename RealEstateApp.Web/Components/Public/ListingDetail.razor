@@ -1,0 +1,130 @@
+@page "/listing/{Slug}"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Forms
+@using RealEstateApp.Web.Data
+@using RealEstateApp.Web.Models
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+@if (_listing is null)
+{
+    <p>İlan bulunamadı.</p>
+}
+else
+{
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <img src="@_listing.CoverImageUrl" class="img-fluid rounded mb-3" style="width:100%; max-height:500px; object-fit:cover;" />
+
+                <h2>@_listing.Title</h2>
+                <p class="fs-4 fw-bold">@_listing.Price.ToString("N0") ₺</p>
+                <p>@_listing.City / @_listing.District / @_listing.Neighborhood</p>
+                <p>@_listing.RoomCount oda • @_listing.GrossM2 m²</p>
+
+                <hr />
+                <p>@_listing.Description</p>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                        <h5>İletişim</h5>
+
+                        <a class="btn btn-success w-100 mb-2"
+                           target="_blank"
+                           href="@GetWhatsAppUrl()">
+                            WhatsApp'tan Yaz
+                        </a>
+
+                        <a class="btn btn-outline-dark w-100" href="/listings">
+                            Tüm İlanlar
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5>Bilgi Talep Et</h5>
+
+                        @if (_isSaved)
+                        {
+                            <div class="alert alert-success">
+                                Talebiniz alındı.
+                            </div>
+                        }
+                        else
+                        {
+                            <EditForm Model="_lead" OnValidSubmit="SaveLead">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary />
+
+                                <div class="mb-2">
+                                    <label>Ad Soyad</label>
+                                    <InputText class="form-control" @bind-Value="_lead.FullName" />
+                                </div>
+
+                                <div class="mb-2">
+                                    <label>Telefon</label>
+                                    <InputText class="form-control" @bind-Value="_lead.Phone" />
+                                </div>
+
+                                <div class="mb-2">
+                                    <label>Mesaj</label>
+                                    <InputTextArea class="form-control" @bind-Value="_lead.Message" />
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100">
+                                    Talep Gönder
+                                </button>
+                            </EditForm>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    private Listing? _listing;
+    private Lead _lead = new();
+    private bool _isSaved;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _listing = await Db.Listings
+            .FirstOrDefaultAsync(x => x.Slug == Slug);
+
+        _lead = new Lead();
+        _isSaved = false;
+    }
+
+    private string GetWhatsAppUrl()
+    {
+        if (_listing is null)
+            return "#";
+
+        var text = Uri.EscapeDataString($"{_listing.Title} ilanı hakkında bilgi almak istiyorum.");
+        return $"https://wa.me/905555555555?text={text}";
+    }
+
+    private async Task SaveLead()
+    {
+        if (_listing is null)
+            return;
+
+        _lead.AgencyId = _listing.AgencyId;
+        _lead.ListingId = _listing.Id;
+        _lead.Status = "New";
+        _lead.CreatedAt = DateTime.UtcNow;
+
+        Db.Leads.Add(_lead);
+        await Db.SaveChangesAsync();
+
+        _isSaved = true;
+    }
+}

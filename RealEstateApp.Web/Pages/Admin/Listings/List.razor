@@ -1,0 +1,100 @@
+@page "/admin/listings"
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<h3>İlanlar</h3>
+
+<div class="mb-3">
+<a class="btn btn-success" href="/admin/listings/add">Yeni İlan Ekle</a></div>
+
+@if (_listings is null)
+{
+    <p>Yükleniyor...</p>
+}
+else if (_listings.Count == 0)
+{
+    <p>Henüz ilan yok.</p>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Görsel</th>
+                <th>Başlık</th>
+                <th>Fiyat</th>
+                <th>Şehir</th>
+                <th>İlçe</th>
+                <th>Oda</th>
+                <th>m²</th>
+                <th>İşlem</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var listing in _listings)
+            {
+                <tr>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(listing.CoverImageUrl))
+                        {
+                            <img src="@listing.CoverImageUrl" style="width:100px; border-radius:6px;" />
+                        }
+                    </td>
+                    <td>@listing.Title</td>
+                    <td>@listing.Price.ToString("N0") ₺</td>
+                    <td>@listing.City</td>
+                    <td>@listing.District</td>
+                    <td>@listing.RoomCount</td>
+                    <td>@listing.GrossM2</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm me-2"
+                                @onclick="() => EditListing(listing.Id)">
+                            Düzenle
+                        </button>
+
+                        <button class="btn btn-danger btn-sm"
+                                @onclick="() => DeleteListing(listing.Id)">
+                            Sil
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Listing>? _listings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _listings = await Db.Listings
+            .OrderByDescending(x => x.Id)
+            .ToListAsync();
+    }
+
+    private void GoToAddPage()
+    {
+        Nav.NavigateTo("/admin/listings/add");
+    }
+
+    private void EditListing(int id)
+    {
+        Nav.NavigateTo($"/admin/listings/edit/{id}");
+    }
+
+    private async Task DeleteListing(int id)
+    {
+        var listing = await Db.Listings.FindAsync(id);
+
+        if (listing is null)
+            return;
+
+        Db.Listings.Remove(listing);
+        await Db.SaveChangesAsync();
+
+        _listings = await Db.Listings
+            .OrderByDescending(x => x.Id)
+            .ToListAsync();
+    }
+}

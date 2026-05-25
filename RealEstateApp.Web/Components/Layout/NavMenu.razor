@@ -1,0 +1,140 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">
+            RealEstateApp.Web
+        </a>
+    </div>
+</div>
+
+<input type="checkbox"
+       title="Navigation menu"
+       class="navbar-toggler" />
+
+<div class="nav-scrollable"
+     onclick="document.querySelector('.navbar-toggler').click()">
+
+    <nav class="nav flex-column">
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link"
+                     href=""
+                     Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu"
+                      aria-hidden="true"></span>
+                Home
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link"
+                     href="/listings">
+                <span class="bi bi-building"
+                      aria-hidden="true"></span>
+                İlanlar
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link"
+                     href="/listings/search">
+                <span class="bi bi-search"
+                      aria-hidden="true"></span>
+                İlan Ara
+            </NavLink>
+        </div>
+
+        <AuthorizeView>
+            <Authorized Context="authContext">
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link"
+                             href="/favorites">
+                        <span class="bi bi-heart"
+                              aria-hidden="true"></span>
+                        Favorilerim
+                    </NavLink>
+                </div>
+
+                <AuthorizeView Roles="Admin,Agent">
+                    <Authorized Context="roleContext">
+
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link"
+                                     href="/admin/dashboard">
+                                <span class="bi bi-speedometer2"
+                                      aria-hidden="true"></span>
+                                Admin Panel
+                            </NavLink>
+                        </div>
+
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link"
+                                     href="/admin/listings">
+                                <span class="bi bi-card-list"
+                                      aria-hidden="true"></span>
+                                İlan Yönetimi
+                            </NavLink>
+                        </div>
+
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link"
+                                     href="/admin/leads">
+                                <span class="bi bi-people"
+                                      aria-hidden="true"></span>
+                                Talepler
+                            </NavLink>
+                        </div>
+
+                    </Authorized>
+                </AuthorizeView>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link"
+                             href="/profile">
+                        <span class="bi bi-person-circle"
+                              aria-hidden="true"></span>
+                        Profil
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <form method="post"
+                          action="/auth/logout-post">
+                        <button type="submit"
+                                class="btn btn-link nav-link">
+                            <span class="bi bi-box-arrow-right"
+                                  aria-hidden="true"></span>
+                            Çıkış Yap
+                        </button>
+                    </form>
+                </div>
+
+            </Authorized>
+
+            <NotAuthorized Context="notAuthContext">
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link"
+                             href="/auth/login">
+                        <span class="bi bi-person"
+                              aria-hidden="true"></span>
+                        Giriş Yap
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link"
+                             href="/auth/register">
+                        <span class="bi bi-person-plus"
+                              aria-hidden="true"></span>
+                        Kayıt Ol
+                    </NavLink>
+                </div>
+
+            </NotAuthorized>
+        </AuthorizeView>
+
+    </nav>
+</div>

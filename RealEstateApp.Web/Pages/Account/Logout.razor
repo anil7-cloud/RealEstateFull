@@ -1,0 +1,20 @@
+@page "/account/logout"
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Identity
+@using RealEstateApp.Web.Models
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager Nav
+
+<h3>Çıkış Yapılıyor...</h3>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await SignInManager.SignOutAsync();
+
+        Nav.NavigateTo("/");
+    }
+}

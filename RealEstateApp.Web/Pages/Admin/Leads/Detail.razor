@@ -1,0 +1,181 @@
+@page "/admin/leads/{id:int}"
+
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@rendermode InteractiveServer
+
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using RealEstateApp.Web.Models
+
+@attribute [Authorize(Roles = "Admin,Agent")]
+
+@inject AppDbContext Db
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h3>Lead Detayı</h3>
+
+@if (_isLoading)
+{
+    <p>Yükleniyor...</p>
+}
+else if (_agency is null)
+{
+    <div class="alert alert-warning">
+        Bu kullanıcıya bağlı emlak ofisi bulunamadı.
+    </div>
+
+    <button class="btn btn-dark" @onclick="CreateAgency">
+        Ofis Oluştur
+    </button>
+}
+else if (_lead is null)
+{
+    <div class="alert alert-danger">
+        Lead bulunamadı veya bu lead için yetkiniz yok.
+    </div>
+
+    <button class="btn btn-secondary" @onclick="GoBack">
+        Geri Dön
+    </button>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-body">
+
+            <h5>@_lead.FullName</h5>
+
+            <p><strong>Telefon:</strong> @_lead.Phone</p>
+            <p><strong>Mesaj:</strong> @(string.IsNullOrWhiteSpace(_lead.Message) ? "-" : _lead.Message)</p>
+            <p><strong>Durum:</strong> @_lead.Status</p>
+            <p><strong>Tarih:</strong> @_lead.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+
+            <hr />
+
+            <p><strong>İlan:</strong> @(_lead.Listing?.Title ?? "-")</p>
+            <p><strong>Ofis:</strong> @(_lead.Agency?.Name ?? "-")</p>
+
+            <div class="mb-3">
+                <label class="form-label">Durum Güncelle</label>
+
+                <select class="form-select" @bind="_lead.Status">
+                    <option value="New">New</option>
+                    <option value="Called">Called</option>
+                    <option value="Closed">Closed</option>
+                </select>
+            </div>
+
+            <button class="btn btn-primary me-2" @onclick="SaveStatus">
+                Kaydet
+            </button>
+
+            @if (_lead.Listing is not null)
+            {
+                <button class="btn btn-dark me-2" @onclick="GoToListing">
+                    İlana Git
+                </button>
+            }
+
+            <button class="btn btn-secondary" @onclick="GoBack">
+                Geri
+            </button>
+
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="alert alert-info mt-3">
+            @_message
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+
+    private Lead? _lead;
+    private RealEstateApp.Web.Models.Agency? _agency;
+
+    private string? _message;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLead();
+    }
+
+    private async Task LoadLead()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            _isLoading = false;
+            return;
+        }
+
+        _agency = await Db.Agencies
+            .FirstOrDefaultAsync(x => x.IdentityUserId == userId);
+
+        if (_agency is null)
+        {
+            _isLoading = false;
+            return;
+        }
+
+        _lead = await Db.Leads
+            .Include(x => x.Listing)
+            .Include(x => x.Agency)
+            .FirstOrDefaultAsync(x =>
+                x.Id == id &&
+                x.AgencyId == _agency.Id);
+
+        _isLoading = false;
+    }
+
+    private async Task SaveStatus()
+    {
+        if (_lead is null || _agency is null)
+            return;
+
+        var dbLead = await Db.Leads
+            .FirstOrDefaultAsync(x =>
+                x.Id == _lead.Id &&
+                x.AgencyId == _agency.Id);
+
+        if (dbLead is null)
+            return;
+
+        dbLead.Status = _lead.Status;
+
+        await Db.SaveChangesAsync();
+
+        _message = "Lead durumu güncellendi.";
+    }
+
+    private void GoToListing()
+    {
+        if (_lead?.Listing is null)
+            return;
+
+        Nav.NavigateTo($"/listings/{_lead.Listing.Slug}");
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/admin/leads");
+    }
+
+    private void CreateAgency()
+    {
+        Nav.NavigateTo("/admin/agency/create");
+    }
+}

@@ -1,0 +1,56 @@
+@page "/agency/{Slug}"
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext Db
+
+@if (_agency is null)
+{
+    <p>Ofis bulunamadı.</p>
+}
+else
+{
+    <div class="container mt-4">
+        <h2>@_agency.Name</h2>
+        <p>@_agency.City / @_agency.District</p>
+        <p>@_agency.Phone</p>
+        <p>@_agency.Description</p>
+
+        <hr />
+        <h4>İlanlar</h4>
+
+        @if (_agency.Listings.Count == 0)
+        {
+            <p>Henüz ilan yok.</p>
+        }
+        else
+        {
+            <div class="row">
+                @foreach (var item in _agency.Listings)
+                {
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm">
+                            <img src="@item.CoverImageUrl" class="card-img-top" />
+                            <div class="card-body">
+                                <h5>@item.Title</h5>
+                                <p>@item.Price.ToString("N0") ₺</p>
+                                <a class="btn btn-dark" href="/listing/@item.Slug">Detay</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = string.Empty;
+
+    private Agency? _agency;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _agency = await Db.Agencies
+            .Include(x => x.Listings)
+            .FirstOrDefaultAsync(x => x.Slug == Slug);
+    }
+}
