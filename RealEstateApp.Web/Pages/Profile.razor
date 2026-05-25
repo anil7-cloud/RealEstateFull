@@ -46,11 +46,10 @@ else
                     Bu kullanıcıya bağlı emlak ofisi bulunamadı.
                 </div>
 
-                <button type="button"
-                        class="btn btn-dark"
-                        @onclick="GoToCreateAgency">
+                <a class="btn btn-dark"
+                   href="/admin/agency/create">
                     Emlak Ofisi Oluştur
-                </button>
+                </a>
             }
             else
             {
@@ -77,17 +76,15 @@ else
                 </p>
 
                 <div class="d-flex gap-2">
-                    <button type="button"
-                            class="btn btn-dark"
-                            @onclick="GoToAgency">
+                    <a class="btn btn-dark"
+                       href="@GetAgencyUrl()">
                         Ajansa Git
-                    </button>
+                    </a>
 
-                    <button type="button"
-                            class="btn btn-primary"
-                            @onclick="GoToDashboard">
+                    <a class="btn btn-primary"
+                       href="/admin/dashboard">
                         Admin Panel
-                    </button>
+                    </a>
                 </div>
             }
 
@@ -137,33 +134,14 @@ else
         _loaded = true;
     }
 
-    private void GoToCreateAgency()
+    private string GetAgencyUrl()
     {
-        Nav.NavigateTo(
-            "/admin/agency/create",
-            forceLoad: true
-        );
-    }
+        if (_agency is null ||
+            string.IsNullOrWhiteSpace(_agency.Slug))
+        {
+            return "/profile";
+        }
 
-    private void GoToAgency()
-    {
-        if (_agency is null)
-            return;
-
-        if (string.IsNullOrWhiteSpace(_agency.Slug))
-            return;
-
-        Nav.NavigateTo(
-            $"/agency/{_agency.Slug}",
-            forceLoad: true
-        );
-    }
-
-    private void GoToDashboard()
-    {
-        Nav.NavigateTo(
-            "/admin/dashboard",
-            forceLoad: true
-        );
+        return $"/agency/{_agency.Slug}";
     }
 }
