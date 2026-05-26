@@ -6,7 +6,6 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.EntityFrameworkCore
-@using RealEstateApp.Web.Models
 
 @inject AuthenticationStateProvider AuthStateProvider
 @inject AppDbContext Db
@@ -75,6 +74,7 @@ else
                 </p>
 
                 <div class="d-flex gap-2">
+
                     <a class="btn btn-dark"
                        href="@GetAgencyUrl()">
                         Ajansa Git
@@ -84,6 +84,7 @@ else
                        href="/admin/dashboard">
                         Admin Panel
                     </a>
+
                 </div>
             }
 
@@ -92,18 +93,22 @@ else
 }
 
 @code {
+
     private string? _userId;
+
     private string? _email;
+
     private string? _userName;
 
-    private Agency? _agency;
+    private RealEstateApp.Web.Models.Agency? _agency;
 
     private bool _loaded;
 
     protected override async Task OnInitializedAsync()
     {
         var authState =
-            await AuthStateProvider.GetAuthenticationStateAsync();
+            await AuthStateProvider
+                .GetAuthenticationStateAsync();
 
         var user =
             authState.User;
@@ -117,7 +122,7 @@ else
                 user.FindFirst(ClaimTypes.Email)?.Value;
 
             _userName =
-                user.Identity.Name;
+                user.Identity?.Name;
 
             if (!string.IsNullOrWhiteSpace(_userId))
             {
@@ -134,8 +139,12 @@ else
 
     private string GetAgencyUrl()
     {
-        if (_agency is null ||
-            string.IsNullOrWhiteSpace(_agency.Slug))
+        if (_agency is null)
+        {
+            return "/profile";
+        }
+
+        if (string.IsNullOrWhiteSpace(_agency.Slug))
         {
             return "/profile";
         }
