@@ -10,7 +10,6 @@
 
 @inject AuthenticationStateProvider AuthStateProvider
 @inject AppDbContext Db
-@inject NavigationManager Nav
 
 <h3>Profil</h3>
 
@@ -97,15 +96,14 @@ else
     private string? _email;
     private string? _userName;
 
-    private RealEstateApp.Web.Models.Agency? _agency;
+    private Agency? _agency;
 
     private bool _loaded;
 
     protected override async Task OnInitializedAsync()
     {
         var authState =
-            await AuthStateProvider
-                .GetAuthenticationStateAsync();
+            await AuthStateProvider.GetAuthenticationStateAsync();
 
         var user =
             authState.User;
