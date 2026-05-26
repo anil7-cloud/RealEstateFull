@@ -8,11 +8,19 @@
         <AuthorizeRouteView RouteData="@routeData"
                             DefaultLayout="@typeof(Layout.MainLayout)">
 
-            <NotAuthorized>
+            <NotAuthorized Context="authContext">
 
                 <RedirectToLogin />
 
             </NotAuthorized>
+
+            <Authorizing>
+
+                <LayoutView Layout="@typeof(Layout.MainLayout)">
+                    <p>Yetki kontrol ediliyor...</p>
+                </LayoutView>
+
+            </Authorizing>
 
         </AuthorizeRouteView>
 
@@ -24,9 +32,7 @@
     <NotFound>
 
         <LayoutView Layout="@typeof(Layout.MainLayout)">
-
             <p>Sayfa bulunamadı.</p>
-
         </LayoutView>
 
     </NotFound>
