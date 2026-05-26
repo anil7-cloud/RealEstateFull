@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.EntityFrameworkCore
+
 @using RealEstateApp.Web.Models
 
 @inject AppDbContext Db
@@ -21,11 +22,7 @@
     </div>
 }
 
-@if (_isLoading)
-{
-    <p>Yükleniyor...</p>
-}
-else if (_alreadyExists)
+@if (_alreadyExists)
 {
     <div class="alert alert-warning">
         Bu kullanıcıya ait emlak ofisi zaten mevcut.
@@ -39,72 +36,77 @@ else if (_alreadyExists)
 else
 {
     <EditForm Model="_agency"
-              OnValidSubmit="CreateAgency"
-              FormName="CreateAgencyForm">
+              OnValidSubmit="CreateAgency">
 
         <DataAnnotationsValidator />
+
         <ValidationSummary />
 
         <div class="mb-3">
-            <label class="form-label">Ofis Adı</label>
+            <label>Ofis Adı</label>
+
             <InputText class="form-control"
                        @bind-Value="_agency.Name" />
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Şehir</label>
+            <label>Şehir</label>
+
             <InputText class="form-control"
                        @bind-Value="_agency.City" />
         </div>
 
         <div class="mb-3">
-            <label class="form-label">İlçe</label>
+            <label>İlçe</label>
+
             <InputText class="form-control"
                        @bind-Value="_agency.District" />
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Telefon</label>
+            <label>Telefon</label>
+
             <InputText class="form-control"
                        @bind-Value="_agency.Phone" />
         </div>
 
         <div class="mb-3">
-            <label class="form-label">WhatsApp</label>
+            <label>WhatsApp</label>
+
             <InputText class="form-control"
                        @bind-Value="_agency.WhatsAppNumber" />
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Açıklama</label>
+            <label>Açıklama</label>
+
             <InputTextArea class="form-control"
-                           rows="5"
                            @bind-Value="_agency.Description" />
         </div>
 
         <button type="submit"
-                class="btn btn-dark"
-                disabled="@_isSaving">
-            @(_isSaving ? "Kaydediliyor..." : "Kaydet")
+                class="btn btn-dark">
+            Kaydet
         </button>
 
     </EditForm>
 }
 
 @code {
+
     private Agency _agency = new();
 
     private string? _message;
-    private string? _userId;
 
-    private bool _isSaving;
     private bool _alreadyExists;
-    private bool _isLoading = true;
+
+    private string? _userId;
 
     protected override async Task OnInitializedAsync()
     {
         var authState =
-            await AuthStateProvider.GetAuthenticationStateAsync();
+            await AuthStateProvider
+                .GetAuthenticationStateAsync();
 
         var user =
             authState.User;
@@ -112,43 +114,25 @@ else
         _userId =
             user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        if (string.IsNullOrWhiteSpace(_userId))
+        if (!string.IsNullOrWhiteSpace(_userId))
         {
-            _message = "Kullanıcı bulunamadı.";
-            _isLoading = false;
-            return;
+            _alreadyExists =
+                await Db.Agencies.AnyAsync(
+                    x => x.IdentityUserId == _userId
+                );
         }
-
-        _alreadyExists =
-            await Db.Agencies.AnyAsync(
-                x => x.IdentityUserId == _userId
-            );
-
-        _isLoading = false;
     }
 
     private async Task CreateAgency()
     {
-        if (_isSaving)
-            return;
-
-        if (string.IsNullOrWhiteSpace(_userId))
-        {
-            _message = "Kullanıcı bulunamadı.";
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(_agency.Name))
-        {
-            _message = "Ofis adı zorunludur.";
-            return;
-        }
-
-        _isSaving = true;
-        _message = null;
-
         try
         {
+            if (string.IsNullOrWhiteSpace(_userId))
+            {
+                _message = "Kullanıcı bulunamadı.";
+                return;
+            }
+
             var exists =
                 await Db.Agencies.AnyAsync(
                     x => x.IdentityUserId == _userId
@@ -156,27 +140,30 @@ else
 
             if (exists)
             {
-                _message = "Bu kullanıcıya ait ofis zaten var.";
-                _alreadyExists = true;
+                _message =
+                    "Bu kullanıcıya ait ofis zaten mevcut.";
+
                 return;
             }
 
             _agency.IdentityUserId = _userId;
-            _agency.Slug = GenerateSlug(_agency.Name);
+
+            _agency.Slug =
+                GenerateSlug(_agency.Name);
 
             Db.Agencies.Add(_agency);
 
             await Db.SaveChangesAsync();
 
-            Nav.NavigateTo("/profile", forceLoad: true);
+            Nav.NavigateTo(
+                "/admin/dashboard",
+                true
+            );
         }
         catch (Exception ex)
         {
-            _message = $"Hata oluştu: {ex.Message}";
-        }
-        finally
-        {
-            _isSaving = false;
+            _message =
+                ex.Message;
         }
     }
 
@@ -184,7 +171,8 @@ else
     {
         if (string.IsNullOrWhiteSpace(text))
         {
-            return Guid.NewGuid().ToString("N");
+            return Guid.NewGuid()
+                .ToString("N");
         }
 
         var slug =
@@ -200,25 +188,20 @@ else
             .Replace("ç", "c");
 
         slug =
-            System.Text.RegularExpressions.Regex.Replace(
-                slug,
-                @"[^a-z0-9\s-]",
-                ""
-            );
+            System.Text.RegularExpressions.Regex
+                .Replace(
+                    slug,
+                    @"[^a-z0-9\s-]",
+                    ""
+                );
 
         slug =
-            System.Text.RegularExpressions.Regex.Replace(
-                slug,
-                @"\s+",
-                "-"
-            );
-
-        slug =
-            System.Text.RegularExpressions.Regex.Replace(
-                slug,
-                @"-+",
-                "-"
-            );
+            System.Text.RegularExpressions.Regex
+                .Replace(
+                    slug,
+                    @"\s+",
+                    "-"
+                );
 
         return slug.Trim('-');
     }
