@@ -1,10 +1,3 @@
-/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.csproj.AssemblyReference.cache
-/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/rpswa.dswa.cache.json
-/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.GeneratedMSBuildEditorConfig.editorconfig
-/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.AssemblyInfoInputs.cache
-/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.AssemblyInfo.cs
-/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.csproj.CoreCompileInputs.cache
-/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.MvcApplicationPartsAssemblyInfo.cache
 /Users/test/Desktop/RealEstateApp/RealEstateApp.Web/bin/Debug/net9.0/out/web.config
 /Users/test/Desktop/RealEstateApp/RealEstateApp.Web/bin/Debug/net9.0/appsettings.Development.json
 /Users/test/Desktop/RealEstateApp/RealEstateApp.Web/bin/Debug/net9.0/appsettings.json
@@ -146,6 +139,13 @@
 /Users/test/Desktop/RealEstateApp/RealEstateApp.Web/bin/Debug/net9.0/runtimes/win-arm64/native/e_sqlite3.dll
 /Users/test/Desktop/RealEstateApp/RealEstateApp.Web/bin/Debug/net9.0/runtimes/win-x64/native/e_sqlite3.dll
 /Users/test/Desktop/RealEstateApp/RealEstateApp.Web/bin/Debug/net9.0/runtimes/win-x86/native/e_sqlite3.dll
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.csproj.AssemblyReference.cache
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/rpswa.dswa.cache.json
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.GeneratedMSBuildEditorConfig.editorconfig
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.AssemblyInfoInputs.cache
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.AssemblyInfo.cs
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.csproj.CoreCompileInputs.cache
+/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.MvcApplicationPartsAssemblyInfo.cache
 /Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/RealEstateApp.Web.sourcelink.json
 /Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/rjimswa.dswa.cache.json
 /Users/test/Desktop/RealEstateApp/RealEstateApp.Web/obj/Debug/net9.0/rjsmrazor.dswa.cache.json

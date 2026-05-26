@@ -1,13 +1,16 @@
 @page "/admin/agency/create"
 
-@attribute [Authorize]
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@rendermode InteractiveServer
 
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.EntityFrameworkCore
-
 @using RealEstateApp.Web.Models
+
+@attribute [Authorize]
 
 @inject AppDbContext Db
 @inject NavigationManager Nav
@@ -36,57 +39,71 @@
 else
 {
     <EditForm Model="_agency"
-              OnValidSubmit="CreateAgency">
+              OnValidSubmit="CreateAgency"
+              FormName="CreateAgencyForm">
 
         <DataAnnotationsValidator />
-
         <ValidationSummary />
 
         <div class="mb-3">
+
             <label>Ofis Adı</label>
 
             <InputText class="form-control"
                        @bind-Value="_agency.Name" />
+
         </div>
 
         <div class="mb-3">
+
             <label>Şehir</label>
 
             <InputText class="form-control"
                        @bind-Value="_agency.City" />
+
         </div>
 
         <div class="mb-3">
+
             <label>İlçe</label>
 
             <InputText class="form-control"
                        @bind-Value="_agency.District" />
+
         </div>
 
         <div class="mb-3">
+
             <label>Telefon</label>
 
             <InputText class="form-control"
                        @bind-Value="_agency.Phone" />
+
         </div>
 
         <div class="mb-3">
+
             <label>WhatsApp</label>
 
             <InputText class="form-control"
                        @bind-Value="_agency.WhatsAppNumber" />
+
         </div>
 
         <div class="mb-3">
+
             <label>Açıklama</label>
 
             <InputTextArea class="form-control"
                            @bind-Value="_agency.Description" />
+
         </div>
 
         <button type="submit"
                 class="btn btn-dark">
+
             Kaydet
+
         </button>
 
     </EditForm>
@@ -129,7 +146,9 @@ else
         {
             if (string.IsNullOrWhiteSpace(_userId))
             {
-                _message = "Kullanıcı bulunamadı.";
+                _message =
+                    "Kullanıcı bulunamadı.";
+
                 return;
             }
 
@@ -146,7 +165,8 @@ else
                 return;
             }
 
-            _agency.IdentityUserId = _userId;
+            _agency.IdentityUserId =
+                _userId;
 
             _agency.Slug =
                 GenerateSlug(_agency.Name);
@@ -157,13 +177,13 @@ else
 
             Nav.NavigateTo(
                 "/admin/dashboard",
-                true
+                forceLoad: true
             );
         }
         catch (Exception ex)
         {
             _message =
-                ex.Message;
+                $"Hata oluştu: {ex.Message}";
         }
     }
 
@@ -200,6 +220,14 @@ else
                 .Replace(
                     slug,
                     @"\s+",
+                    "-"
+                );
+
+        slug =
+            System.Text.RegularExpressions.Regex
+                .Replace(
+                    slug,
+                    @"-+",
                     "-"
                 );
 
