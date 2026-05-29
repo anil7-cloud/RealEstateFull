@@ -3,17 +3,15 @@
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
 @rendermode InteractiveServer
 
-@using System.Security.Claims
+@attribute [Authorize]
 
+@using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.EntityFrameworkCore
-
 @using RealEstateApp.Web.Models
 @using RealEstateApp.Web.Services
-
-@attribute [Authorize]
 
 @inject AppDbContext Db
 @inject NavigationManager Nav
@@ -39,12 +37,10 @@ else if (_agency is null)
         Önce emlak ofisi oluşturmalısınız.
     </div>
 
-    <button class="btn btn-dark"
-            @onclick="CreateAgency">
-
+    <a class="btn btn-dark"
+       href="/admin/agency/create">
         Ofis Oluştur
-
-    </button>
+    </a>
 }
 else
 {
@@ -55,8 +51,6 @@ else
         <DataAnnotationsValidator />
 
         <ValidationSummary />
-
-        <!-- TITLE -->
 
         <div class="mb-3">
 
@@ -69,8 +63,6 @@ else
 
         </div>
 
-        <!-- PRICE -->
-
         <div class="mb-3">
 
             <label class="form-label">
@@ -81,8 +73,6 @@ else
                          @bind-Value="_listing.Price" />
 
         </div>
-
-        <!-- CITY -->
 
         <div class="mb-3">
 
@@ -95,8 +85,6 @@ else
 
         </div>
 
-        <!-- DISTRICT -->
-
         <div class="mb-3">
 
             <label class="form-label">
@@ -107,8 +95,6 @@ else
                        @bind-Value="_listing.District" />
 
         </div>
-
-        <!-- NEIGHBORHOOD -->
 
         <div class="mb-3">
 
@@ -121,8 +107,6 @@ else
 
         </div>
 
-        <!-- ROOM -->
-
         <div class="mb-3">
 
             <label class="form-label">
@@ -133,8 +117,6 @@ else
                          @bind-Value="_listing.RoomCount" />
 
         </div>
-
-        <!-- M2 -->
 
         <div class="mb-3">
 
@@ -147,8 +129,6 @@ else
 
         </div>
 
-        <!-- COVER -->
-
         <div class="mb-3">
 
             <label class="form-label">
@@ -159,8 +139,6 @@ else
                        class="form-control" />
 
         </div>
-
-        <!-- GALLERY -->
 
         <div class="mb-3">
 
@@ -174,8 +152,6 @@ else
 
         </div>
 
-        <!-- DESCRIPTION -->
-
         <div class="mb-3">
 
             <label class="form-label">
@@ -187,8 +163,6 @@ else
                            @bind-Value="_listing.Description" />
 
         </div>
-
-        <!-- BUTTON -->
 
         <button type="submit"
                 class="btn btn-primary"
@@ -211,8 +185,8 @@ else
 
     private IBrowserFile? _coverFile;
 
-    private IReadOnlyList<IBrowserFile> _galleryFiles
-        = Array.Empty<IBrowserFile>();
+    private IReadOnlyList<IBrowserFile> _galleryFiles =
+        Array.Empty<IBrowserFile>();
 
     private string? _message;
 
@@ -266,7 +240,17 @@ else
 
         if (_agency is null)
         {
-            _message = "Emlak ofisi bulunamadı.";
+            _message =
+                "Emlak ofisi bulunamadı.";
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_listing.Title))
+        {
+            _message =
+                "Başlık zorunludur.";
+
             return;
         }
 
@@ -276,17 +260,16 @@ else
 
         try
         {
-            if (string.IsNullOrWhiteSpace(_listing.Title))
-            {
-                _message = "Başlık zorunludur.";
+            _listing.AgencyId =
+                _agency.Id;
 
-                return;
-            }
-
-            _listing.AgencyId = _agency.Id;
+            _listing.Status =
+                "Active";
 
             _listing.Slug =
-                await GenerateUniqueSlug(_listing.Title);
+                await GenerateUniqueSlug(
+                    _listing.Title
+                );
 
             // COVER IMAGE
 
@@ -298,7 +281,8 @@ else
 
                 if (!string.IsNullOrWhiteSpace(coverPath))
                 {
-                    _listing.CoverImageUrl = coverPath;
+                    _listing.CoverImageUrl =
+                        coverPath;
                 }
             }
 
@@ -306,7 +290,7 @@ else
 
             await Db.SaveChangesAsync();
 
-            // GALLERY
+            // GALLERY IMAGES
 
             var displayOrder = 1;
 
@@ -345,11 +329,6 @@ else
         {
             _isSaving = false;
         }
-    }
-
-    private void CreateAgency()
-    {
-        Nav.NavigateTo("/admin/agency/create");
     }
 
     private async Task<string> GenerateUniqueSlug(string? title)

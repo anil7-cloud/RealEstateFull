@@ -1,178 +1,167 @@
-@page "/admin/listings"
-@page "/favorites"
+@page "/admin/leads"
+
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@rendermode InteractiveServer
+
+@attribute [Authorize]
+
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.EntityFrameworkCore
 @using RealEstateApp.Web.Models
 
-@attribute [Authorize]
-
 @inject AppDbContext Db
-@inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
 
-<h3>İlan Yönetimi</h3>
-
-<div class="mb-3">
-    <button class="btn btn-dark" @onclick="GoToAdd">
-        Yeni İlan Ekle
-    </button>
-</div>
+<h3>Talepler</h3>
 
 @if (_isLoading)
 {
     <p>Yükleniyor...</p>
 }
-else if (_agency is null)
+else if (_leads.Count == 0)
 {
     <div class="alert alert-warning">
-        Önce emlak ofisi oluşturmalısınız.
-    </div>
-
-    <button class="btn btn-dark" @onclick="CreateAgency">
-        Ofis Oluştur
-    </button>
-}
-else if (_listings.Count == 0)
-{
-    <div class="alert alert-warning">
-        Henüz ilan bulunmuyor.
+        Henüz talep bulunmuyor.
     </div>
 }
 else
 {
-    <table class="table table-striped table-bordered">
-        <thead>
-            <tr>
-                <th>Görsel</th>
-                <th>Başlık</th>
-                <th>Fiyat</th>
-                <th>Şehir</th>
-                <th>İşlemler</th>
-            </tr>
-        </thead>
+    <div class="table-responsive">
 
-        <tbody>
-            @foreach (var listing in _listings)
-            {
+        <table class="table table-striped align-middle">
+
+            <thead>
+
                 <tr>
-                    <td style="width:120px;">
-                        @if (!string.IsNullOrWhiteSpace(listing.CoverImageUrl))
-                        {
-                            <img src="@listing.CoverImageUrl"
-                                 style="width:100px; height:70px; object-fit:cover; border-radius:6px;" />
-                        }
-                    </td>
 
-                    <td>@listing.Title</td>
-                    <td>@listing.Price.ToString("N0") ₺</td>
-                    <td>@listing.City</td>
+                    <th>Ad Soyad</th>
 
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-primary"
-                                    @onclick="() => EditListing(listing.Id)">
-                                Düzenle
-                            </button>
+                    <th>Telefon</th>
 
-                            <button class="btn btn-sm btn-dark"
-                                    @onclick="() => DetailListing(listing.Slug)">
-                                Detay
-                            </button>
+                    <th>İlan</th>
 
-                            <button class="btn btn-sm btn-danger"
-                                    @onclick="() => DeleteListing(listing.Id)">
-                                Sil
-                            </button>
-                        </div>
-                    </td>
+                    <th>Durum</th>
+
+                    <th>Tarih</th>
+
+                    <th>İşlem</th>
+
                 </tr>
-            }
-        </tbody>
-    </table>
+
+            </thead>
+
+            <tbody>
+
+                @foreach (var item in _leads)
+                {
+                    <tr>
+
+                        <td>
+                            @item.FullName
+                        </td>
+
+                        <td>
+                            @item.Phone
+                        </td>
+
+                        <td>
+                            @(item.Listing?.Title ?? "-")
+                        </td>
+
+                        <td>
+                            @item.Status
+                        </td>
+
+                        <td>
+                            @item.CreatedAt.ToLocalTime()
+                        </td>
+
+                        <td>
+
+                            <div class="d-flex gap-2">
+
+                                <a class="btn btn-sm btn-dark"
+                                   href="/listing/@item.Listing?.Slug">
+                                    İlan
+                                </a>
+
+                                <a class="btn btn-sm btn-success"
+                                   target="_blank"
+                                   href="@GetWhatsAppUrl(item)">
+                                    WhatsApp
+                                </a>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
 }
 
 @code {
-    private List<Listing> _listings = new();
-    private RealEstateApp.Web.Models.Agency? _agency;
+
+    private List<Lead> _leads = new();
+
     private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadListings();
-    }
+        var authState =
+            await AuthStateProvider
+                .GetAuthenticationStateAsync();
 
-    private async Task LoadListings()
-    {
-        _isLoading = true;
+        var user =
+            authState.User;
 
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId =
+            user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (!string.IsNullOrWhiteSpace(userId))
         {
-            _agency = await Db.Agencies
-                .FirstOrDefaultAsync(x => x.IdentityUserId == userId);
+            var agency =
+                await Db.Agencies
+                    .FirstOrDefaultAsync(
+                        x => x.IdentityUserId == userId
+                    );
 
-            if (_agency is not null)
+            if (agency is not null)
             {
-                _listings = await Db.Listings
-                    .Include(x => x.Images)
-                    .Where(x => x.AgencyId == _agency.Id)
-                    .OrderByDescending(x => x.Id)
-                    .ToListAsync();
+                _leads =
+                    await Db.Leads
+                        .Include(x => x.Listing)
+                        .Where(x => x.AgencyId == agency.Id)
+                        .OrderByDescending(x => x.Id)
+                        .ToListAsync();
             }
         }
 
         _isLoading = false;
     }
 
-    private void GoToAdd()
+    private string GetWhatsAppUrl(Lead lead)
     {
-        Nav.NavigateTo("/admin/listings/add");
-    }
+        var phone =
+            lead.Phone?
+                .Replace(" ", "")
+                .Replace("-", "")
+                .Replace("(", "")
+                .Replace(")", "")
+                .Replace("+", "");
 
-    private void CreateAgency()
-    {
-        Nav.NavigateTo("/admin/agency/create");
-    }
+        var text =
+            Uri.EscapeDataString(
+                "Merhaba, talebiniz hakkında dönüş sağlıyorum."
+            );
 
-    private void EditListing(int id)
-    {
-        Nav.NavigateTo($"/admin/listings/edit/{id}");
-    }
-
-    private void DetailListing(string slug)
-    {
-        Nav.NavigateTo($"/admin/listings/detail/{slug}");
-    }
-
-    private async Task DeleteListing(int id)
-    {
-        if (_agency is null)
-            return;
-
-        var listing = await Db.Listings
-            .Include(x => x.Images)
-            .FirstOrDefaultAsync(x =>
-                x.Id == id &&
-                x.AgencyId == _agency.Id);
-
-        if (listing is null)
-            return;
-
-        if (listing.Images.Any())
-        {
-            Db.ListingImages.RemoveRange(listing.Images);
-        }
-
-        Db.Listings.Remove(listing);
-
-        await Db.SaveChangesAsync();
-
-        await LoadListings();
+        return $"https://wa.me/{phone}?text={text}";
     }
 }

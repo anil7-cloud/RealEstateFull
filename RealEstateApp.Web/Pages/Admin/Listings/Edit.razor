@@ -1,17 +1,17 @@
 @page "/admin/listings/edit/{id:int}"
+
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
 @rendermode InteractiveServer
+
+@attribute [Authorize]
 
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.EntityFrameworkCore
-
 @using RealEstateApp.Web.Models
 @using RealEstateApp.Web.Services
-
-@attribute [Authorize]
 
 @inject AppDbContext Db
 @inject NavigationManager Nav
@@ -22,9 +22,7 @@
 
 @if (!string.IsNullOrWhiteSpace(_message))
 {
-    <div class="alert alert-info">
-        @_message
-    </div>
+    <div class="alert alert-info">@_message</div>
 }
 
 @if (_isLoading)
@@ -37,9 +35,9 @@ else if (_agency is null)
         Bu kullanıcıya bağlı emlak ofisi bulunamadı.
     </div>
 
-    <button class="btn btn-dark" @onclick="CreateAgency">
+    <a class="btn btn-dark" href="/admin/agency/create">
         Ofis Oluştur
-    </button>
+    </a>
 }
 else if (_listing is null)
 {
@@ -47,13 +45,16 @@ else if (_listing is null)
         İlan bulunamadı veya bu ilanı düzenleme yetkiniz yok.
     </div>
 
-    <button class="btn btn-secondary" @onclick="GoBack">
+    <a class="btn btn-secondary" href="/admin/listings">
         Geri Dön
-    </button>
+    </a>
 }
 else
 {
-    <EditForm Model="_listing" OnValidSubmit="UpdateListing" FormName="EditListingForm">
+    <EditForm Model="_listing"
+              OnValidSubmit="UpdateListing"
+              FormName="EditListingForm">
+
         <DataAnnotationsValidator />
         <ValidationSummary />
 
@@ -93,6 +94,15 @@ else
         </div>
 
         <div class="mb-3">
+            <label>Durum</label>
+            <InputSelect class="form-select" @bind-Value="_listing.Status">
+                <option value="Active">Active</option>
+                <option value="Passive">Passive</option>
+                <option value="Draft">Draft</option>
+            </InputSelect>
+        </div>
+
+        <div class="mb-3">
             <label>Mevcut Kapak Görseli</label>
 
             @if (!string.IsNullOrWhiteSpace(_listing.CoverImageUrl))
@@ -115,7 +125,9 @@ else
 
         <div class="mb-3">
             <label>Yeni Galeri Görselleri</label>
-            <InputFile OnChange="HandleGallerySelected" multiple class="form-control" />
+            <InputFile OnChange="HandleGallerySelected"
+                       multiple
+                       class="form-control" />
         </div>
 
         <div class="mb-3">
@@ -149,16 +161,21 @@ else
 
         <div class="mb-3">
             <label>Açıklama</label>
-            <InputTextArea class="form-control" @bind-Value="_listing.Description" />
+            <InputTextArea class="form-control"
+                           rows="5"
+                           @bind-Value="_listing.Description" />
         </div>
 
-        <button type="submit" class="btn btn-primary me-2" disabled="@_isSaving">
+        <button type="submit"
+                class="btn btn-primary me-2"
+                disabled="@_isSaving">
             @(_isSaving ? "Güncelleniyor..." : "Güncelle")
         </button>
 
-        <button type="button" class="btn btn-secondary" @onclick="GoBack">
+        <a class="btn btn-secondary" href="/admin/listings">
             İptal
-        </button>
+        </a>
+
     </EditForm>
 }
 
@@ -170,7 +187,9 @@ else
     private RealEstateApp.Web.Models.Agency? _agency;
 
     private IBrowserFile? _coverFile;
-    private IReadOnlyList<IBrowserFile> _galleryFiles = Array.Empty<IBrowserFile>();
+
+    private IReadOnlyList<IBrowserFile> _galleryFiles =
+        Array.Empty<IBrowserFile>();
 
     private string? _message;
     private bool _isSaving;
@@ -183,10 +202,14 @@ else
 
     private async Task LoadAgencyAndListing()
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
+        var authState =
+            await AuthStateProvider.GetAuthenticationStateAsync();
 
-        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var user =
+            authState.User;
+
+        var userId =
+            user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -194,8 +217,9 @@ else
             return;
         }
 
-        _agency = await Db.Agencies
-            .FirstOrDefaultAsync(x => x.IdentityUserId == userId);
+        _agency =
+            await Db.Agencies
+                .FirstOrDefaultAsync(x => x.IdentityUserId == userId);
 
         if (_agency is null)
         {
@@ -203,11 +227,12 @@ else
             return;
         }
 
-        _listing = await Db.Listings
-            .Include(x => x.Images)
-            .FirstOrDefaultAsync(x =>
-                x.Id == id &&
-                x.AgencyId == _agency.Id);
+        _listing =
+            await Db.Listings
+                .Include(x => x.Images)
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id &&
+                    x.AgencyId == _agency.Id);
 
         _isLoading = false;
     }
@@ -227,23 +252,29 @@ else
         if (_listing is null || _agency is null || _isSaving)
             return;
 
+        if (string.IsNullOrWhiteSpace(_listing.Title))
+        {
+            _message = "Başlık zorunludur.";
+            return;
+        }
+
         _isSaving = true;
         _message = null;
 
         try
         {
-            if (string.IsNullOrWhiteSpace(_listing.Title))
-            {
-                _message = "Başlık zorunludur.";
-                return;
-            }
-
             _listing.AgencyId = _agency.Id;
             _listing.Slug = await GenerateUniqueSlug(_listing.Title, _listing.Id);
 
+            if (string.IsNullOrWhiteSpace(_listing.Status))
+            {
+                _listing.Status = "Active";
+            }
+
             if (_coverFile is not null)
             {
-                var coverPath = await ImageService.SaveImageAsync(_coverFile);
+                var coverPath =
+                    await ImageService.SaveImageAsync(_coverFile);
 
                 if (!string.IsNullOrWhiteSpace(coverPath))
                 {
@@ -251,13 +282,15 @@ else
                 }
             }
 
-            var maxOrder = _listing.Images.Count == 0
-                ? 0
-                : _listing.Images.Max(x => x.DisplayOrder);
+            var maxOrder =
+                _listing.Images.Count == 0
+                    ? 0
+                    : _listing.Images.Max(x => x.DisplayOrder);
 
             foreach (var file in _galleryFiles)
             {
-                var imagePath = await ImageService.SaveImageAsync(file);
+                var imagePath =
+                    await ImageService.SaveImageAsync(file);
 
                 if (string.IsNullOrWhiteSpace(imagePath))
                     continue;
@@ -291,28 +324,20 @@ else
         if (_listing is null)
             return;
 
-        var image = await Db.ListingImages
-            .FirstOrDefaultAsync(x =>
-                x.Id == imageId &&
-                x.ListingId == _listing.Id);
+        var image =
+            await Db.ListingImages
+                .FirstOrDefaultAsync(x =>
+                    x.Id == imageId &&
+                    x.ListingId == _listing.Id);
 
         if (image is null)
             return;
 
         Db.ListingImages.Remove(image);
+
         await Db.SaveChangesAsync();
 
         await LoadAgencyAndListing();
-    }
-
-    private void GoBack()
-    {
-        Nav.NavigateTo("/admin/listings", forceLoad: true);
-    }
-
-    private void CreateAgency()
-    {
-        Nav.NavigateTo("/admin/agency/create");
     }
 
     private async Task<string> GenerateUniqueSlug(string? title, int listingId)
@@ -321,7 +346,9 @@ else
         var slug = baseSlug;
         var counter = 1;
 
-        while (await Db.Listings.AnyAsync(x => x.Slug == slug && x.Id != listingId))
+        while (await Db.Listings.AnyAsync(x =>
+            x.Slug == slug &&
+            x.Id != listingId))
         {
             slug = $"{baseSlug}-{counter}";
             counter++;
