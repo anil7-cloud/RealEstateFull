@@ -26,6 +26,7 @@ else
         <div class="row">
 
             <div class="col-md-6">
+
                 @if (!string.IsNullOrWhiteSpace(_selectedImage))
                 {
                     <img src="@_selectedImage"
@@ -44,9 +45,11 @@ else
                         }
                     </div>
                 }
+
             </div>
 
             <div class="col-md-6">
+
                 <h2>@_listing.Title</h2>
 
                 <h4 class="text-primary">
@@ -54,35 +57,51 @@ else
                 </h4>
 
                 <ul class="list-group mb-3">
-                    <li class="list-group-item"><strong>Şehir:</strong> @_listing.City</li>
-                    <li class="list-group-item"><strong>İlçe:</strong> @_listing.District</li>
-                    <li class="list-group-item"><strong>Mahalle:</strong> @_listing.Neighborhood</li>
-                    <li class="list-group-item"><strong>Oda:</strong> @_listing.RoomCount</li>
-                    <li class="list-group-item"><strong>Brüt m²:</strong> @_listing.GrossM2</li>
+                    <li class="list-group-item">
+                        <strong>Şehir:</strong> @_listing.City
+                    </li>
+
+                    <li class="list-group-item">
+                        <strong>İlçe:</strong> @_listing.District
+                    </li>
+
+                    <li class="list-group-item">
+                        <strong>Mahalle:</strong> @_listing.Neighborhood
+                    </li>
+
+                    <li class="list-group-item">
+                        <strong>Oda:</strong> @_listing.RoomCount
+                    </li>
+
+                    <li class="list-group-item">
+                        <strong>Brüt m²:</strong> @_listing.GrossM2
+                    </li>
                 </ul>
 
                 <div class="d-flex gap-2 mb-3">
-                    <button type="button"
-                            class="btn btn-success"
-                            @onclick="OpenWhatsApp">
+
+                    <a class="btn btn-success"
+                       target="_blank"
+                       href="@GetWhatsAppUrl()">
                         WhatsApp ile Yaz
-                    </button>
+                    </a>
 
                     @if (_listing.Agency is not null &&
                          !string.IsNullOrWhiteSpace(_listing.Agency.Slug))
                     {
-                        <button type="button"
-                                class="btn btn-outline-dark"
-                                @onclick="GoToAgency">
+                        <a class="btn btn-outline-dark"
+                           href="/agency/@_listing.Agency.Slug">
                             Ofis Sayfası
-                        </button>
+                        </a>
                     }
+
                 </div>
 
                 @if (_listing.Agency is not null)
                 {
                     <div class="card mb-3">
                         <div class="card-body">
+
                             <h5>Emlak Ofisi</h5>
 
                             <p class="mb-1">
@@ -96,6 +115,7 @@ else
                             <p class="mb-0">
                                 @_listing.Agency.Phone
                             </p>
+
                         </div>
                     </div>
                 }
@@ -109,6 +129,7 @@ else
 
                 <div class="card mb-3">
                     <div class="card-body">
+
                         <h5>Açıklama</h5>
 
                         <p>
@@ -116,11 +137,13 @@ else
                                 ? "Açıklama bulunmuyor."
                                 : _listing.Description)
                         </p>
+
                     </div>
                 </div>
 
                 <div class="card">
                     <div class="card-body">
+
                         <h5>Bu ilan için bilgi al</h5>
 
                         <EditForm Model="_lead"
@@ -156,8 +179,10 @@ else
                             </button>
 
                         </EditForm>
+
                     </div>
                 </div>
+
             </div>
 
         </div>
@@ -169,28 +194,34 @@ else
     public string slug { get; set; } = string.Empty;
 
     private Listing? _listing;
+
     private string? _selectedImage;
+
     private string? _message;
 
     private Lead _lead = new();
 
     private bool _isLoading = true;
+
     private bool _isSavingLead;
 
     protected override async Task OnInitializedAsync()
     {
-        _listing = await Db.Listings
-            .Include(x => x.Agency)
-            .Include(x => x.Images)
-            .FirstOrDefaultAsync(x => x.Slug == slug);
+        _listing =
+            await Db.Listings
+                .Include(x => x.Agency)
+                .Include(x => x.Images)
+                .FirstOrDefaultAsync(x => x.Slug == slug);
 
         if (_listing is not null)
         {
-            _selectedImage = !string.IsNullOrWhiteSpace(_listing.CoverImageUrl)
-                ? _listing.CoverImageUrl
-                : _listing.Images
-                    .OrderBy(x => x.DisplayOrder)
-                    .FirstOrDefault()?.ImageUrl;
+            _selectedImage =
+                !string.IsNullOrWhiteSpace(_listing.CoverImageUrl)
+                    ? _listing.CoverImageUrl
+                    : _listing.Images
+                        .OrderBy(x => x.DisplayOrder)
+                        .FirstOrDefault()
+                        ?.ImageUrl;
         }
 
         _isLoading = false;
@@ -209,29 +240,44 @@ else
         if (string.IsNullOrWhiteSpace(_lead.FullName) ||
             string.IsNullOrWhiteSpace(_lead.Phone))
         {
-            _message = "Ad soyad ve telefon zorunludur.";
+            _message =
+                "Ad soyad ve telefon zorunludur.";
+
             return;
         }
 
         _isSavingLead = true;
+
         _message = null;
 
         try
         {
-            _lead.AgencyId = _listing.AgencyId;
-            _lead.ListingId = _listing.Id;
-            _lead.Status = "New";
-            _lead.CreatedAt = DateTime.UtcNow;
+            _lead.AgencyId =
+                _listing.AgencyId;
+
+            _lead.ListingId =
+                _listing.Id;
+
+            _lead.Status =
+                "New";
+
+            _lead.CreatedAt =
+                DateTime.UtcNow;
 
             Db.Leads.Add(_lead);
+
             await Db.SaveChangesAsync();
 
-            _message = "Talebiniz başarıyla gönderildi.";
-            _lead = new Lead();
+            _message =
+                "Talebiniz başarıyla gönderildi.";
+
+            _lead =
+                new Lead();
         }
         catch (Exception ex)
         {
-            _message = $"Hata oluştu: {ex.Message}";
+            _message =
+                $"Hata oluştu: {ex.Message}";
         }
         finally
         {
@@ -239,34 +285,27 @@ else
         }
     }
 
-    private void OpenWhatsApp()
-    {
-        if (_listing?.Agency is null)
-            return;
-
-        if (string.IsNullOrWhiteSpace(_listing.Agency.WhatsAppNumber))
-            return;
-
-        var phone = _listing.Agency.WhatsAppNumber
-            .Replace(" ", "")
-            .Replace("(", "")
-            .Replace(")", "")
-            .Replace("-", "")
-            .Replace("+", "");
-
-        var text = Uri.EscapeDataString(
-            $"Merhaba, {_listing.Title} ilanı hakkında bilgi almak istiyorum."
-        );
-
-        Nav.NavigateTo($"https://wa.me/{phone}?text={text}", forceLoad: true);
-    }
-
-    private void GoToAgency()
+    private string GetWhatsAppUrl()
     {
         if (_listing?.Agency is null ||
-            string.IsNullOrWhiteSpace(_listing.Agency.Slug))
-            return;
+            string.IsNullOrWhiteSpace(_listing.Agency.WhatsAppNumber))
+        {
+            return "#";
+        }
 
-        Nav.NavigateTo($"/agency/{_listing.Agency.Slug}");
+        var phone =
+            _listing.Agency.WhatsAppNumber
+                .Replace(" ", "")
+                .Replace("(", "")
+                .Replace(")", "")
+                .Replace("-", "")
+                .Replace("+", "");
+
+        var text =
+            Uri.EscapeDataString(
+                $"Merhaba, {_listing.Title} ilanı hakkında bilgi almak istiyorum."
+            );
+
+        return $"https://wa.me/{phone}?text={text}";
     }
 }

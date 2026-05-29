@@ -7,89 +7,152 @@
 
 <h3>İlan Ara</h3>
 
-<div class="row mb-4">
+<div class="card mb-4">
+    <div class="card-body">
 
-    <div class="col-md-4">
+        <div class="row">
 
-        <InputText class="form-control"
-                   placeholder="Şehir"
-                   @bind-Value="_city" />
+            <div class="col-md-3 mb-3">
+                <label>Şehir</label>
+                <InputText class="form-control"
+                           @bind-Value="_city" />
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <label>İlçe</label>
+                <InputText class="form-control"
+                           @bind-Value="_district" />
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <label>Minimum Fiyat</label>
+                <InputNumber class="form-control"
+                             @bind-Value="_minPrice" />
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <label>Maksimum Fiyat</label>
+                <InputNumber class="form-control"
+                             @bind-Value="_maxPrice" />
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <label>Oda Sayısı</label>
+                <InputNumber class="form-control"
+                             @bind-Value="_roomCount" />
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <label>Sıralama</label>
+
+                <InputSelect class="form-select"
+                             @bind-Value="_sortBy">
+
+                    <option value="newest">
+                        En Yeni
+                    </option>
+
+                    <option value="priceAsc">
+                        Fiyat Artan
+                    </option>
+
+                    <option value="priceDesc">
+                        Fiyat Azalan
+                    </option>
+
+                </InputSelect>
+
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end mb-3">
+
+                <button class="btn btn-dark w-100"
+                        @onclick="SearchListings">
+                    Ara
+                </button>
+
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end mb-3">
+
+                <button class="btn btn-outline-secondary w-100"
+                        @onclick="ClearFilters">
+                    Temizle
+                </button>
+
+            </div>
+
+        </div>
 
     </div>
-
-    <div class="col-md-4">
-
-        <InputNumber class="form-control"
-                     placeholder="Minimum Fiyat"
-                     @bind-Value="_minPrice" />
-
-    </div>
-
-    <div class="col-md-4">
-
-        <button class="btn btn-dark w-100"
-                @onclick="SearchListings">
-            Ara
-        </button>
-
-    </div>
-
 </div>
 
 @if (_isLoading)
 {
     <p>Yükleniyor...</p>
 }
-else if (_listings.Count == 0)
-{
-    <div class="alert alert-warning">
-        Sonuç bulunamadı.
-    </div>
-}
 else
 {
-    <div class="row">
+    <p class="mb-3">
+        <strong>@_listings.Count</strong> sonuç bulundu.
+    </p>
 
-        @foreach (var item in _listings)
-        {
-            <div class="col-md-4 mb-4">
+    @if (_listings.Count == 0)
+    {
+        <div class="alert alert-warning">
+            Sonuç bulunamadı.
+        </div>
+    }
+    else
+    {
+        <div class="row">
 
-                <div class="card shadow-sm h-100">
+            @foreach (var item in _listings)
+            {
+                <div class="col-md-4 mb-4">
 
-                    @if (!string.IsNullOrWhiteSpace(item.CoverImageUrl))
-                    {
-                        <img src="@item.CoverImageUrl"
-                             class="card-img-top"
-                             style="height:240px; object-fit:cover;" />
-                    }
+                    <div class="card shadow-sm h-100">
 
-                    <div class="card-body">
+                        @if (!string.IsNullOrWhiteSpace(item.CoverImageUrl))
+                        {
+                            <img src="@item.CoverImageUrl"
+                                 class="card-img-top"
+                                 style="height:240px; object-fit:cover;" />
+                        }
 
-                        <h5>
-                            @item.Title
-                        </h5>
+                        <div class="card-body">
 
-                        <p class="fw-bold fs-5">
-                            @item.Price.ToString("N0") ₺
-                        </p>
+                            <h5>
+                                @item.Title
+                            </h5>
 
-                        <p>
-                            @item.City / @item.District
-                        </p>
+                            <p class="fw-bold fs-5 text-primary">
+                                @item.Price.ToString("N0") ₺
+                            </p>
 
-                        <a class="btn btn-dark w-100"
-                           href="/listing/@item.Slug">
-                            Detay
-                        </a>
+                            <p>
+                                @item.City / @item.District
+                            </p>
+
+                            <p>
+                                @item.RoomCount Oda -
+                                @item.GrossM2 m²
+                            </p>
+
+                            <a class="btn btn-dark w-100"
+                               href="/listing/@item.Slug">
+                                Detay
+                            </a>
+
+                        </div>
 
                     </div>
 
                 </div>
+            }
 
-            </div>
-        }
-
-    </div>
+        </div>
+    }
 }
 
 @code {
@@ -100,7 +163,15 @@ else
 
     private string? _city;
 
+    private string? _district;
+
     private decimal? _minPrice;
+
+    private decimal? _maxPrice;
+
+    private int? _roomCount;
+
+    private string _sortBy = "newest";
 
     protected override async Task OnInitializedAsync()
     {
@@ -124,6 +195,14 @@ else
                 );
         }
 
+        if (!string.IsNullOrWhiteSpace(_district))
+        {
+            query =
+                query.Where(
+                    x => x.District!.Contains(_district)
+                );
+        }
+
         if (_minPrice.HasValue)
         {
             query =
@@ -132,11 +211,44 @@ else
                 );
         }
 
+        if (_maxPrice.HasValue)
+        {
+            query =
+                query.Where(
+                    x => x.Price <= _maxPrice.Value
+                );
+        }
+
+        if (_roomCount.HasValue)
+        {
+            query =
+                query.Where(
+                    x => x.RoomCount == _roomCount.Value
+                );
+        }
+
+        query = _sortBy switch
+        {
+            "priceAsc" => query.OrderBy(x => x.Price),
+            "priceDesc" => query.OrderByDescending(x => x.Price),
+            _ => query.OrderByDescending(x => x.Id)
+        };
+
         _listings =
-            await query
-                .OrderByDescending(x => x.Id)
-                .ToListAsync();
+            await query.ToListAsync();
 
         _isLoading = false;
+    }
+
+    private async Task ClearFilters()
+    {
+        _city = null;
+        _district = null;
+        _minPrice = null;
+        _maxPrice = null;
+        _roomCount = null;
+        _sortBy = "newest";
+
+        await SearchListings();
     }
 }

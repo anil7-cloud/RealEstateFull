@@ -1,56 +1,180 @@
 @page "/agency/{Slug}"
+
 @using Microsoft.EntityFrameworkCore
+@using RealEstateApp.Web.Models
+
 @inject AppDbContext Db
 
-@if (_agency is null)
+@if (_isLoading)
 {
-    <p>Ofis bulunamadı.</p>
+    <p>Yükleniyor...</p>
+}
+else if (_agency is null)
+{
+    <div class="alert alert-danger">
+        Ofis bulunamadı.
+    </div>
 }
 else
 {
     <div class="container mt-4">
-        <h2>@_agency.Name</h2>
-        <p>@_agency.City / @_agency.District</p>
-        <p>@_agency.Phone</p>
-        <p>@_agency.Description</p>
 
-        <hr />
-        <h4>İlanlar</h4>
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
 
-        @if (_agency.Listings.Count == 0)
+                <div class="d-flex justify-content-between flex-wrap gap-3">
+
+                    <div>
+                        <h2>@_agency.Name</h2>
+
+                        <p class="mb-1">
+                            @_agency.City / @_agency.District
+                        </p>
+
+                        <p class="mb-1">
+                            <strong>Telefon:</strong> @_agency.Phone
+                        </p>
+
+                        @if (!string.IsNullOrWhiteSpace(_agency.Description))
+                        {
+                            <p class="mt-3">
+                                @_agency.Description
+                            </p>
+                        }
+                    </div>
+
+                    <div class="text-end">
+
+                        <h5>
+                            @_listings.Count İlan
+                        </h5>
+
+                        @if (!string.IsNullOrWhiteSpace(_agency.WhatsAppNumber))
+                        {
+                            <a class="btn btn-success mt-2"
+                               target="_blank"
+                               href="@GetWhatsAppUrl()">
+                                WhatsApp ile İletişim
+                            </a>
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <h4>Ofisin İlanları</h4>
+
+        @if (_listings.Count == 0)
         {
-            <p>Henüz ilan yok.</p>
+            <div class="alert alert-warning">
+                Henüz ilan yok.
+            </div>
         }
         else
         {
             <div class="row">
-                @foreach (var item in _agency.Listings)
+
+                @foreach (var item in _listings)
                 {
-                    <div class="col-md-4 mb-3">
-                        <div class="card shadow-sm">
-                            <img src="@item.CoverImageUrl" class="card-img-top" />
+                    <div class="col-md-4 mb-4">
+
+                        <div class="card shadow-sm h-100">
+
+                            @if (!string.IsNullOrWhiteSpace(item.CoverImageUrl))
+                            {
+                                <img src="@item.CoverImageUrl"
+                                     class="card-img-top"
+                                     style="height:230px; object-fit:cover;" />
+                            }
+
                             <div class="card-body">
+
                                 <h5>@item.Title</h5>
-                                <p>@item.Price.ToString("N0") ₺</p>
-                                <a class="btn btn-dark" href="/listing/@item.Slug">Detay</a>
+
+                                <p class="fw-bold fs-5 text-primary">
+                                    @item.Price.ToString("N0") ₺
+                                </p>
+
+                                <p>
+                                    @item.City / @item.District
+                                </p>
+
+                                <p>
+                                    @item.RoomCount oda • @item.GrossM2 m²
+                                </p>
+
+                                <a class="btn btn-dark w-100"
+                                   href="/listings/@item.Slug">
+                                    Detay
+                                </a>
+
                             </div>
+
                         </div>
+
                     </div>
                 }
+
             </div>
         }
+
     </div>
 }
 
 @code {
-    [Parameter] public string Slug { get; set; } = string.Empty;
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
 
     private Agency? _agency;
 
+    private List<Listing> _listings = new();
+
+    private bool _isLoading = true;
+
     protected override async Task OnParametersSetAsync()
     {
-        _agency = await Db.Agencies
-            .Include(x => x.Listings)
-            .FirstOrDefaultAsync(x => x.Slug == Slug);
+        _agency =
+            await Db.Agencies
+                .FirstOrDefaultAsync(x => x.Slug == Slug);
+
+        if (_agency is not null)
+        {
+            _listings =
+                await Db.Listings
+                    .Where(x =>
+                        x.AgencyId == _agency.Id &&
+                        x.Status == "Active")
+                    .OrderByDescending(x => x.Id)
+                    .ToListAsync();
+        }
+
+        _isLoading = false;
+    }
+
+    private string GetWhatsAppUrl()
+    {
+        if (_agency is null ||
+            string.IsNullOrWhiteSpace(_agency.WhatsAppNumber))
+        {
+            return "#";
+        }
+
+        var phone =
+            _agency.WhatsAppNumber
+                .Replace(" ", "")
+                .Replace("+", "")
+                .Replace("-", "")
+                .Replace("(", "")
+                .Replace(")", "");
+
+        var text =
+            Uri.EscapeDataString(
+                $"{_agency.Name} emlak ofisi ile iletişime geçmek istiyorum."
+            );
+
+        return $"https://wa.me/{phone}?text={text}";
     }
 }
