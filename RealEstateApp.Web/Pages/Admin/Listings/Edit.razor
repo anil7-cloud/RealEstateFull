@@ -60,42 +60,50 @@ else
 
         <div class="mb-3">
             <label>Başlık</label>
-            <InputText class="form-control" @bind-Value="_listing.Title" />
+            <InputText class="form-control"
+                       @bind-Value="_listing.Title" />
         </div>
 
         <div class="mb-3">
             <label>Fiyat</label>
-            <InputNumber class="form-control" @bind-Value="_listing.Price" />
+            <InputNumber class="form-control"
+                         @bind-Value="_listing.Price" />
         </div>
 
         <div class="mb-3">
             <label>Şehir</label>
-            <InputText class="form-control" @bind-Value="_listing.City" />
+            <InputText class="form-control"
+                       @bind-Value="_listing.City" />
         </div>
 
         <div class="mb-3">
             <label>İlçe</label>
-            <InputText class="form-control" @bind-Value="_listing.District" />
+            <InputText class="form-control"
+                       @bind-Value="_listing.District" />
         </div>
 
         <div class="mb-3">
             <label>Mahalle</label>
-            <InputText class="form-control" @bind-Value="_listing.Neighborhood" />
+            <InputText class="form-control"
+                       @bind-Value="_listing.Neighborhood" />
         </div>
 
         <div class="mb-3">
             <label>Oda Sayısı</label>
-            <InputNumber class="form-control" @bind-Value="_listing.RoomCount" />
+            <InputNumber class="form-control"
+                         @bind-Value="_listing.RoomCount" />
         </div>
 
         <div class="mb-3">
             <label>Brüt m²</label>
-            <InputNumber class="form-control" @bind-Value="_listing.GrossM2" />
+            <InputNumber class="form-control"
+                         @bind-Value="_listing.GrossM2" />
         </div>
 
         <div class="mb-3">
             <label>Durum</label>
-            <InputSelect class="form-select" @bind-Value="_listing.Status">
+            <InputSelect class="form-select"
+                         @bind-Value="_listing.Status">
                 <option value="Active">Active</option>
                 <option value="Passive">Passive</option>
                 <option value="Draft">Draft</option>
@@ -120,7 +128,8 @@ else
 
         <div class="mb-3">
             <label>Yeni Kapak Görseli</label>
-            <InputFile OnChange="HandleCoverSelected" class="form-control" />
+            <InputFile OnChange="HandleCoverSelected"
+                       class="form-control" />
         </div>
 
         <div class="mb-3">
@@ -172,7 +181,8 @@ else
             @(_isSaving ? "Güncelleniyor..." : "Güncelle")
         </button>
 
-        <a class="btn btn-secondary" href="/admin/listings">
+        <a class="btn btn-secondary"
+           href="/admin/listings">
             İptal
         </a>
 
@@ -184,6 +194,7 @@ else
     public int id { get; set; }
 
     private Listing? _listing;
+
     private RealEstateApp.Web.Models.Agency? _agency;
 
     private IBrowserFile? _coverFile;
@@ -192,7 +203,9 @@ else
         Array.Empty<IBrowserFile>();
 
     private string? _message;
+
     private bool _isSaving;
+
     private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
@@ -219,7 +232,9 @@ else
 
         _agency =
             await Db.Agencies
-                .FirstOrDefaultAsync(x => x.IdentityUserId == userId);
+                .FirstOrDefaultAsync(
+                    x => x.IdentityUserId == userId
+                );
 
         if (_agency is null)
         {
@@ -230,9 +245,11 @@ else
         _listing =
             await Db.Listings
                 .Include(x => x.Images)
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.AgencyId == _agency.Id);
+                .FirstOrDefaultAsync(
+                    x =>
+                        x.Id == id &&
+                        x.AgencyId == _agency.Id
+                );
 
         _isLoading = false;
     }
@@ -249,8 +266,12 @@ else
 
     private async Task UpdateListing()
     {
-        if (_listing is null || _agency is null || _isSaving)
+        if (_listing is null ||
+            _agency is null ||
+            _isSaving)
+        {
             return;
+        }
 
         if (string.IsNullOrWhiteSpace(_listing.Title))
         {
@@ -264,7 +285,12 @@ else
         try
         {
             _listing.AgencyId = _agency.Id;
-            _listing.Slug = await GenerateUniqueSlug(_listing.Title, _listing.Id);
+
+            _listing.Slug =
+                await GenerateUniqueSlug(
+                    _listing.Title,
+                    _listing.Id
+                );
 
             if (string.IsNullOrWhiteSpace(_listing.Status))
             {
@@ -307,11 +333,15 @@ else
 
             await Db.SaveChangesAsync();
 
-            Nav.NavigateTo("/admin/listings", forceLoad: true);
+            Nav.NavigateTo(
+                "/admin/listings",
+                forceLoad: true
+            );
         }
         catch (Exception ex)
         {
-            _message = $"Hata oluştu: {ex.Message}";
+            _message =
+                $"Hata oluştu: {ex.Message}";
         }
         finally
         {
@@ -326,9 +356,11 @@ else
 
         var image =
             await Db.ListingImages
-                .FirstOrDefaultAsync(x =>
-                    x.Id == imageId &&
-                    x.ListingId == _listing.Id);
+                .FirstOrDefaultAsync(
+                    x =>
+                        x.Id == imageId &&
+                        x.ListingId == _listing.Id
+                );
 
         if (image is null)
             return;
@@ -340,17 +372,27 @@ else
         await LoadAgencyAndListing();
     }
 
-    private async Task<string> GenerateUniqueSlug(string? title, int listingId)
+    private async Task<string> GenerateUniqueSlug(
+        string? title,
+        int listingId)
     {
-        var baseSlug = GenerateSlug(title);
-        var slug = baseSlug;
-        var counter = 1;
+        var baseSlug =
+            GenerateSlug(title);
 
-        while (await Db.Listings.AnyAsync(x =>
-            x.Slug == slug &&
-            x.Id != listingId))
+        var slug =
+            baseSlug;
+
+        var counter =
+            1;
+
+        while (await Db.Listings.AnyAsync(
+            x =>
+                x.Slug == slug &&
+                x.Id != listingId))
         {
-            slug = $"{baseSlug}-{counter}";
+            slug =
+                $"{baseSlug}-{counter}";
+
             counter++;
         }
 
@@ -362,7 +404,9 @@ else
         if (string.IsNullOrWhiteSpace(text))
             return Guid.NewGuid().ToString("N");
 
-        var slug = text.Trim().ToLowerInvariant();
+        var slug =
+            text.Trim()
+                .ToLowerInvariant();
 
         slug = slug
             .Replace("ı", "i")
@@ -372,9 +416,26 @@ else
             .Replace("ö", "o")
             .Replace("ç", "c");
 
-        slug = System.Text.RegularExpressions.Regex.Replace(slug, @"[^a-z0-9\s-]", "");
-        slug = System.Text.RegularExpressions.Regex.Replace(slug, @"\s+", "-");
-        slug = System.Text.RegularExpressions.Regex.Replace(slug, @"-+", "-");
+        slug =
+            System.Text.RegularExpressions.Regex.Replace(
+                slug,
+                @"[^a-z0-9\s-]",
+                ""
+            );
+
+        slug =
+            System.Text.RegularExpressions.Regex.Replace(
+                slug,
+                @"\s+",
+                "-"
+            );
+
+        slug =
+            System.Text.RegularExpressions.Regex.Replace(
+                slug,
+                @"-+",
+                "-"
+            );
 
         return slug.Trim('-');
     }

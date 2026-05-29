@@ -80,6 +80,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQWRtaW4vQWdlbmN5L0NyZWF0ZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
+[/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/Pages/Admin/Agency/Edit.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQWRtaW4vQWdlbmN5L0VkaXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
 [/Users/test/Desktop/RealEstateApp/RealEstateApp.Web/Pages/Admin/Appointments/MyAppointments.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQWRtaW4vQXBwb2ludG1lbnRzL015QXBwb2ludG1lbnRzLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
