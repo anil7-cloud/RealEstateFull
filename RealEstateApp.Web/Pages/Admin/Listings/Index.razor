@@ -16,6 +16,13 @@
 
 <h3>Talepler</h3>
 
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="alert alert-info">
+        @_message
+    </div>
+}
+
 @if (_isLoading)
 {
     <p>Yükleniyor...</p>
@@ -33,45 +40,36 @@ else
         <table class="table table-striped align-middle">
 
             <thead>
-
                 <tr>
-
                     <th>Ad Soyad</th>
-
                     <th>Telefon</th>
-
                     <th>İlan</th>
-
                     <th>Durum</th>
-
                     <th>Tarih</th>
-
                     <th>İşlem</th>
-
                 </tr>
-
             </thead>
 
             <tbody>
-
                 @foreach (var item in _leads)
                 {
                     <tr>
+                        <td>@item.FullName</td>
 
-                        <td>
-                            @item.FullName
-                        </td>
+                        <td>@item.Phone</td>
 
-                        <td>
-                            @item.Phone
-                        </td>
+                        <td>@(item.Listing?.Title ?? "-")</td>
 
-                        <td>
-                            @(item.Listing?.Title ?? "-")
-                        </td>
-
-                        <td>
-                            @item.Status
+                        <td style="min-width:160px;">
+                            <InputSelect class="form-select"
+                                         Value="@item.Status"
+                                         ValueChanged="@(async (string value) => await UpdateStatus(item, value))"
+                                         ValueExpression="@(() => item.Status)">
+                                <option value="New">New</option>
+                                <option value="Contacted">Contacted</option>
+                                <option value="Meeting">Meeting</option>
+                                <option value="Closed">Closed</option>
+                            </InputSelect>
                         </td>
 
                         <td>
@@ -79,13 +77,15 @@ else
                         </td>
 
                         <td>
-
                             <div class="d-flex gap-2">
 
-                                <a class="btn btn-sm btn-dark"
-                                   href="/listing/@item.Listing?.Slug">
-                                    İlan
-                                </a>
+                                @if (!string.IsNullOrWhiteSpace(item.Listing?.Slug))
+                                {
+                                    <a class="btn btn-sm btn-dark"
+                                       href="/listing/@item.Listing.Slug">
+                                        İlan
+                                    </a>
+                                }
 
                                 <a class="btn btn-sm btn-success"
                                    target="_blank"
@@ -94,12 +94,9 @@ else
                                 </a>
 
                             </div>
-
                         </td>
-
                     </tr>
                 }
-
             </tbody>
 
         </table>
@@ -108,16 +105,16 @@ else
 }
 
 @code {
-
     private List<Lead> _leads = new();
 
     private bool _isLoading = true;
 
+    private string? _message;
+
     protected override async Task OnInitializedAsync()
     {
         var authState =
-            await AuthStateProvider
-                .GetAuthenticationStateAsync();
+            await AuthStateProvider.GetAuthenticationStateAsync();
 
         var user =
             authState.User;
@@ -147,6 +144,17 @@ else
         _isLoading = false;
     }
 
+    private async Task UpdateStatus(
+        Lead lead,
+        string status)
+    {
+        lead.Status = status;
+
+        await Db.SaveChangesAsync();
+
+        _message = "Talep durumu güncellendi.";
+    }
+
     private string GetWhatsAppUrl(Lead lead)
     {
         var phone =
@@ -156,6 +164,11 @@ else
                 .Replace("(", "")
                 .Replace(")", "")
                 .Replace("+", "");
+
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            return "#";
+        }
 
         var text =
             Uri.EscapeDataString(
