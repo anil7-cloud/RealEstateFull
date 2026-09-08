@@ -1,0 +1,139 @@
+@attribute [Authorize]
+@page "/dashboard"
+
+@inject PropertyService PropertyService
+
+
+<h1>🏠 Real Estate Dashboard</h1>
+
+
+<div class="cards">
+
+
+<div class="card">
+<h3>🏢 Properties</h3>
+<h2>@propertyCount</h2>
+<p>Aktif ilan</p>
+</div>
+
+
+<div class="card">
+<h3>❤️ Favorites</h3>
+<h2>@favoriteCount</h2>
+<p>Favoriler</p>
+</div>
+
+
+<div class="card">
+<h3>💬 Messages</h3>
+<h2>@messageCount</h2>
+<p>Mesajlar</p>
+</div>
+
+
+<div class="card">
+<h3>🎯 Leads</h3>
+<h2>@leadCount</h2>
+<p>Potansiyel müşteri</p>
+</div>
+
+
+</div>
+
+
+
+<h2>📊 Özet</h2>
+
+<div class="panel">
+
+<p>
+Toplam portföy:
+<b>@propertyCount</b>
+</p>
+
+<p>
+Toplam favori:
+<b>@favoriteCount</b>
+</p>
+
+<p>
+Toplam mesaj:
+<b>@messageCount</b>
+</p>
+
+</div>
+
+
+
+@code {
+
+int propertyCount = 0;
+
+int favoriteCount = 0;
+
+int messageCount = 0;
+
+int leadCount = 0;
+
+
+
+protected override async Task OnInitializedAsync()
+{
+
+    var properties = await PropertyService.GetAll();
+
+    propertyCount = properties.Count;
+
+
+    // Şimdilik servisler bağlanınca gerçek veri gelecek
+    favoriteCount = 0;
+
+    messageCount = 0;
+
+    leadCount = 0;
+
+}
+
+}
+
+
+
+<style>
+
+.cards{
+
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:20px;
+
+}
+
+
+.card{
+
+background:white;
+padding:25px;
+border-radius:15px;
+box-shadow:0 5px 15px #ddd;
+
+}
+
+
+.card h2{
+
+font-size:36px;
+
+}
+
+
+.panel{
+
+background:#f5f5f5;
+padding:25px;
+border-radius:15px;
+margin-top:20px;
+
+}
+
+</style>
+

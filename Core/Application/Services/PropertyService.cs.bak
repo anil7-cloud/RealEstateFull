@@ -1,0 +1,226 @@
+using REAL_ESTATE_CLEAN.Core.Application.DTO;
+using REAL_ESTATE_CLEAN.Core.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+namespace REAL_ESTATE_CLEAN.Core.Application.Services;
+
+public class PropertyService
+{
+    private readonly AppDbContext _context;
+
+    public PropertyService(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<List<PropertyDto>> GetAll()
+    {
+        return await _context.Properties
+            .Where(x => x.IsActive)
+            .Select(x => new PropertyDto
+            {
+                Id = x.Id,
+                Title = x.Title,
+                Location = x.Location,
+                City = x.City,
+                Price = x.Price,
+                IsPremium = x.IsPremium,
+                CoverImageUrl = _context.PropertyMedia
+                    .Where(m =>
+                        m.PropertyId == x.Id &&
+                        m.MediaType == "Image")
+                    .OrderByDescending(m => m.IsPrimary)
+                    .ThenBy(m => m.DisplayOrder)
+                    .Select(m => m.MediaUrl)
+                    .FirstOrDefault()
+            })
+            .ToListAsync();
+    }
+
+    public async Task<PropertyDto?> GetById(int id)
+    {
+        return await _context.Properties
+            .Where(x => x.Id == id)
+            .Select(x => new PropertyDto
+            {
+                Id = x.Id,
+                Title = x.Title,
+                Location = x.Location,
+                City = x.City,
+                Price = x.Price,
+                IsPremium = x.IsPremium,
+                CoverImageUrl = _context.PropertyMedia
+                    .Where(m =>
+                        m.PropertyId == x.Id &&
+                        m.MediaType == "Image")
+                    .OrderByDescending(m => m.IsPrimary)
+                    .ThenBy(m => m.DisplayOrder)
+                    .Select(m => m.MediaUrl)
+                    .FirstOrDefault()
+            })
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<List<PropertyDto>> Search(string q)
+    {
+        if (string.IsNullOrWhiteSpace(q))
+            return await GetAll();
+
+        q = q.Trim();
+
+        return await _context.Properties
+            .Where(x =>
+                x.IsActive &&
+                (x.Title.Contains(q) ||
+                 x.City.Contains(q) ||
+                 x.Location.Contains(q)))
+            .Select(x => new PropertyDto
+            {
+                Id = x.Id,
+                Title = x.Title,
+                Location = x.Location,
+                City = x.City,
+                Price = x.Price,
+                IsPremium = x.IsPremium,
+                CoverImageUrl = _context.PropertyMedia
+                    .Where(m =>
+                        m.PropertyId == x.Id &&
+                        m.MediaType == "Image")
+                    .OrderByDescending(m => m.IsPrimary)
+                    .ThenBy(m => m.DisplayOrder)
+                    .Select(m => m.MediaUrl)
+                    .FirstOrDefault()
+            })
+            .ToListAsync();
+    }
+
+    public async Task<Property> AddAsync(Property property)
+    {
+        property.Title = property.Title.Trim();
+        property.Location = property.Location.Trim();
+        property.City = property.City.Trim();
+
+        property.IsActive = true;
+        property.ViewCount = 0;
+        property.CreatedAt = DateTime.UtcNow;
+
+        _context.Properties.Add(property);
+
+        await _context.SaveChangesAsync();
+
+        return property;
+    }
+
+    public async Task<List<PropertyDto>> GetByUserId(int userId)
+    {
+        return await _context.Properties
+            .Where(x => x.AppUserId == userId)
+            .Select(x => new PropertyDto
+            {
+                Id = x.Id,
+                Title = x.Title,
+                Location = x.Location,
+                City = x.City,
+                Price = x.Price,
+                IsPremium = x.IsPremium,
+                CoverImageUrl = _context.PropertyMedia
+                    .Where(m =>
+                        m.PropertyId == x.Id &&
+                        m.MediaType == "Image")
+                    .OrderByDescending(m => m.IsPrimary)
+                    .ThenBy(m => m.DisplayOrder)
+                    .Select(m => m.MediaUrl)
+                    .FirstOrDefault()
+            })
+            .ToListAsync();
+    }
+
+    public async Task<bool> DeleteByUserId(int propertyId, int userId)
+    {
+        var property = await _context.Properties
+            .FirstOrDefaultAsync(x =>
+                x.Id == propertyId &&
+                x.AppUserId == userId);
+
+        if (property is null)
+            return false;
+
+        var media = await _context.PropertyMedia
+            .Where(x => x.PropertyId == propertyId)
+            .ToListAsync();
+
+        _context.PropertyMedia.RemoveRange(media);
+        _context.Properties.Remove(property);
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
+
+    public async Task<bool> BelongsToUser(
+        int propertyId,
+        int userId)
+    {
+        return await _context.Properties
+            .AnyAsync(x =>
+                x.Id == propertyId &&
+                x.AppUserId == userId);
+    }
+
+    public async Task<bool> DeleteMediaByUserId(
+        int mediaId,
+        int userId)
+    {
+        var media = await _context.PropertyMedia
+            .FirstOrDefaultAsync(x => x.Id == mediaId);
+
+        if (media is null)
+            return false;
+
+        var property = await _context.Properties
+            .FirstOrDefaultAsync(x =>
+                x.Id == media.PropertyId &&
+                x.AppUserId == userId);
+
+        if (property is null)
+            return false;
+
+        _context.PropertyMedia.Remove(media);
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
+
+    public async Task<bool> SetCoverMediaByUserId(
+        int mediaId,
+        int userId)
+    {
+        var media = await _context.PropertyMedia
+            .FirstOrDefaultAsync(x => x.Id == mediaId);
+
+        if (media is null)
+            return false;
+
+        var property = await _context.Properties
+            .FirstOrDefaultAsync(x =>
+                x.Id == media.PropertyId &&
+                x.AppUserId == userId);
+
+        if (property is null)
+            return false;
+
+        var propertyMedia =
+            await _context.PropertyMedia
+                .Where(x => x.PropertyId == property.Id)
+                .ToListAsync();
+
+        foreach (var item in propertyMedia)
+            item.IsPrimary = item.Id == mediaId;
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
+
+}

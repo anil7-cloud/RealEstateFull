@@ -1,0 +1,36 @@
+using Microsoft.EntityFrameworkCore;
+using System;
+
+namespace REAL_ESTATE_CLEAN.Core.Persistence
+{
+    [Index(nameof(PropertyId), nameof(LeadId), IsUnique = true)]
+    public class PropertyCustomerMatch
+    {
+        public int Id { get; set; }
+
+        public int PropertyId { get; set; }
+
+        public int LeadId { get; set; }
+
+        // 0 - 100 arası eşleşme skoru
+        public decimal MatchScore { get; set; }
+
+        public bool PriceMatched { get; set; }
+
+        public bool LocationMatched { get; set; }
+
+        public bool PropertyTypeMatched { get; set; }
+
+        public bool RoomCountMatched { get; set; }
+
+        public bool SizeMatched { get; set; }
+
+        public string MatchReason { get; set; } = string.Empty;
+
+        public string Status { get; set; } = "New";
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime? UpdatedAt { get; set; }
+    }
+}

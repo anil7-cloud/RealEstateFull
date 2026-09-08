@@ -1,0 +1,119 @@
+@page "/customers"
+
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext Context
+
+
+<h1>👥 Müşteriler</h1>
+
+
+<table>
+
+<thead>
+<tr>
+<th>Ad Soyad</th>
+<th>Telefon</th>
+<th>Email</th>
+<th>Kaynak</th>
+<th>Durum</th>
+<th>Tarih</th>
+</tr>
+</thead>
+
+
+<tbody>
+
+@foreach(var customer in customers)
+{
+
+<tr>
+
+<td>
+@customer.FullName
+</td>
+
+
+<td>
+@customer.PhoneNumber
+</td>
+
+
+<td>
+@customer.Email
+</td>
+
+
+<td>
+@customer.Source
+</td>
+
+
+<td>
+<span class="status">
+@customer.Status
+</span>
+</td>
+
+
+<td>
+@customer.CreatedAt.ToShortDateString()
+</td>
+
+
+</tr>
+
+}
+
+</tbody>
+
+</table>
+
+
+
+@code {
+
+private List<CustomerLead> customers = new();
+
+
+
+protected override async Task OnInitializedAsync()
+{
+
+    customers = await Context.CustomerLeads
+        .OrderByDescending(x => x.CreatedAt)
+        .ToListAsync();
+
+}
+
+}
+
+
+
+<style>
+
+table{
+
+width:100%;
+border-collapse:collapse;
+
+}
+
+
+th,td{
+
+padding:15px;
+border-bottom:1px solid #ddd;
+
+}
+
+
+.status{
+
+background:#eee;
+padding:5px 10px;
+border-radius:8px;
+
+}
+
+</style>
+

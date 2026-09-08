@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: saas-crm
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: saas-crm
+  template:
+    metadata:
+      labels:
+        app: saas-crm
+    spec:
+      containers:
+        - name: api
+          image: saas-crm:latest
+          ports:
+            - containerPort: 80

@@ -1,0 +1,45 @@
+@page "/payment-history"
+@using REAL_ESTATE_CLEAN.Core.Persistence
+@using REAL_ESTATE_CLEAN.Core.Application.Services
+@inject REAL_ESTATE_CLEAN.Core.Application.Services.PaymentService PaymentService
+
+<h3>Ödeme Geçmişi</h3>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>İlan</th>
+            <th>Tutar</th>
+            <th>Para Birimi</th>
+            <th>Yöntem</th>
+            <th>Durum</th>
+            <th>Tarih</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var payment in payments)
+    {
+        <tr>
+            <td>@payment.Id</td>
+            <td>@payment.PropertyId</td>
+            <td>@payment.Amount</td>
+            <td>@payment.Currency</td>
+            <td>@payment.PaymentMethod</td>
+            <td>@payment.Status</td>
+            <td>@payment.PaidAt.ToLocalTime()</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@code {
+
+    private List<Payment> payments = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        payments = await PaymentService.GetAllPayments();
+    }
+
+}

@@ -1,0 +1,314 @@
+using Microsoft.EntityFrameworkCore;
+using REAL_ESTATE_CLEAN.Core.Domain.Entities;
+using REAL_ESTATE_CLEAN.Core.Persistence;
+
+namespace REAL_ESTATE_CLEAN.Services.Ai
+{
+    public class PropertyCustomerMatchSalesAutomationOperationsReliabilityAlertRepository
+    {
+        private readonly AppDbContext _dbContext;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityAlertHistoryRepository
+                _historyRepository;
+
+        public PropertyCustomerMatchSalesAutomationOperationsReliabilityAlertRepository(
+            AppDbContext dbContext,
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityAlertHistoryRepository historyRepository)
+        {
+            _dbContext =
+                dbContext;
+
+            _historyRepository =
+                historyRepository;
+        }
+
+        public async Task<
+            PropertyMatchSalesAutomationOperationsReliabilityAlert?>
+            GetOpenByAnomalyIdAsync(
+                Guid anomalyId,
+                CancellationToken cancellationToken = default)
+        {
+            return await _dbContext
+                .PropertyMatchSalesAutomationOperationsReliabilityAlerts
+                .FirstOrDefaultAsync(
+                    x =>
+                        x.AnomalyId == anomalyId &&
+                        x.Status != "Resolved",
+                    cancellationToken);
+        }
+
+        public async Task<
+            PropertyMatchSalesAutomationOperationsReliabilityAlert>
+            CreateAsync(
+                Guid? anomalyId,
+                string severity,
+                string reason,
+                decimal score,
+                decimal scoreDrop,
+                CancellationToken cancellationToken = default)
+        {
+            if (anomalyId.HasValue)
+            {
+                var existing =
+                    await GetOpenByAnomalyIdAsync(
+                        anomalyId.Value,
+                        cancellationToken);
+
+                if (existing != null)
+                {
+                    return existing;
+                }
+            }
+
+            var now =
+                DateTime.UtcNow;
+
+            var alert =
+                new PropertyMatchSalesAutomationOperationsReliabilityAlert
+                {
+                    Id =
+                        Guid.NewGuid(),
+
+                    AnomalyId =
+                        anomalyId,
+
+                    AlertNumber =
+                        $"REL-{now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
+
+                    Severity =
+                        severity,
+
+                    Priority =
+                        GetPriority(severity),
+
+                    Title =
+                        BuildTitle(severity),
+
+                    Reason =
+                        reason,
+
+                    Score =
+                        score,
+
+                    ScoreDrop =
+                        scoreDrop,
+
+                    Status =
+                        "Open",
+
+                    CreatedAt =
+                        now,
+
+                    UpdatedAt =
+                        now
+                };
+
+            await _dbContext
+                .PropertyMatchSalesAutomationOperationsReliabilityAlerts
+                .AddAsync(
+                    alert,
+                    cancellationToken);
+
+            await _dbContext
+                .SaveChangesAsync(
+                    cancellationToken);
+
+            await _historyRepository
+                .AddAsync(
+                    alert.Id,
+                    alert.AlertNumber,
+                    "Created",
+                    null,
+                    "Open",
+                    alert.Severity,
+                    alert.Priority,
+                    "System",
+                    "Reliability alert created.",
+                    cancellationToken);
+
+            return alert;
+        }
+
+        public async Task<List<
+            PropertyMatchSalesAutomationOperationsReliabilityAlert>>
+            GetOpenAsync(
+                int limit = 100,
+                CancellationToken cancellationToken = default)
+        {
+            limit =
+                Math.Clamp(
+                    limit,
+                    1,
+                    1000);
+
+            return await _dbContext
+                .PropertyMatchSalesAutomationOperationsReliabilityAlerts
+                .AsNoTracking()
+                .Where(x =>
+                    x.Status != "Resolved")
+                .OrderByDescending(x =>
+                    x.Priority == "P1")
+                .ThenByDescending(x =>
+                    x.CreatedAt)
+                .Take(limit)
+                .ToListAsync(
+                    cancellationToken);
+        }
+
+        public async Task<List<
+            PropertyMatchSalesAutomationOperationsReliabilityAlert>>
+            GetRecentAsync(
+                int limit = 100,
+                CancellationToken cancellationToken = default)
+        {
+            limit =
+                Math.Clamp(
+                    limit,
+                    1,
+                    5000);
+
+            return await _dbContext
+                .PropertyMatchSalesAutomationOperationsReliabilityAlerts
+                .AsNoTracking()
+                .OrderByDescending(x =>
+                    x.CreatedAt)
+                .Take(limit)
+                .ToListAsync(
+                    cancellationToken);
+        }
+
+        public async Task<bool>
+            AcknowledgeAsync(
+                Guid id,
+                string acknowledgedBy,
+                CancellationToken cancellationToken = default)
+        {
+            var alert =
+                await _dbContext
+                    .PropertyMatchSalesAutomationOperationsReliabilityAlerts
+                    .FirstOrDefaultAsync(
+                        x =>
+                            x.Id == id &&
+                            x.Status == "Open",
+                        cancellationToken);
+
+            if (alert == null)
+            {
+                return false;
+            }
+
+            var previousStatus =
+                alert.Status;
+
+            var now =
+                DateTime.UtcNow;
+
+            alert.Status =
+                "Acknowledged";
+
+            alert.AcknowledgedBy =
+                acknowledgedBy;
+
+            alert.AcknowledgedAt =
+                now;
+
+            alert.UpdatedAt =
+                now;
+
+            await _dbContext
+                .SaveChangesAsync(
+                    cancellationToken);
+
+            await _historyRepository
+                .AddAsync(
+                    alert.Id,
+                    alert.AlertNumber,
+                    "Acknowledged",
+                    previousStatus,
+                    alert.Status,
+                    alert.Severity,
+                    alert.Priority,
+                    acknowledgedBy,
+                    "Reliability alert acknowledged.",
+                    cancellationToken);
+
+            return true;
+        }
+
+        public async Task<bool>
+            ResolveAsync(
+                Guid id,
+                string resolvedBy,
+                CancellationToken cancellationToken = default)
+        {
+            var alert =
+                await _dbContext
+                    .PropertyMatchSalesAutomationOperationsReliabilityAlerts
+                    .FirstOrDefaultAsync(
+                        x =>
+                            x.Id == id &&
+                            x.Status != "Resolved",
+                        cancellationToken);
+
+            if (alert == null)
+            {
+                return false;
+            }
+
+            var previousStatus =
+                alert.Status;
+
+            alert.Status =
+                "Resolved";
+
+            alert.ResolvedBy =
+                resolvedBy;
+
+            alert.ResolvedAt =
+                DateTime.UtcNow;
+
+            alert.UpdatedAt =
+                DateTime.UtcNow;
+
+            await _dbContext
+                .SaveChangesAsync(
+                    cancellationToken);
+
+            await _historyRepository
+                .AddAsync(
+                    alert.Id,
+                    alert.AlertNumber,
+                    "Resolved",
+                    previousStatus,
+                    "Resolved",
+                    alert.Severity,
+                    alert.Priority,
+                    resolvedBy,
+                    "Reliability alert resolved.",
+                    cancellationToken);
+
+            return true;
+        }
+
+        private static string GetPriority(
+            string severity)
+        {
+            return severity.Equals(
+                "Critical",
+                StringComparison.OrdinalIgnoreCase)
+                    ? "P1"
+                    : "P2";
+        }
+
+        private static string BuildTitle(
+            string severity)
+        {
+            return severity.Equals(
+                "Critical",
+                StringComparison.OrdinalIgnoreCase)
+                    ? "Critical reliability degradation detected"
+                    : "Reliability degradation detected";
+        }
+    }
+}

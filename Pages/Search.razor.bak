@@ -1,0 +1,229 @@
+@page "/search"
+
+@using REAL_ESTATE_CLEAN.Core.Application.DTO
+@using REAL_ESTATE_CLEAN.Core.Application.Services
+
+@inject PropertyService Service
+@inject NavigationManager Nav
+
+<h1>🏠 İlan Ara</h1>
+
+<div class="search-box">
+
+    <input
+        type="text"
+        @bind="q"
+        @bind:event="oninput"
+        placeholder="İlan, şehir veya konum ara..." />
+
+    <button @onclick="DoSearch">
+        🔎 Ara
+    </button>
+
+</div>
+
+@if (loading)
+{
+    <p>İlanlar aranıyor...</p>
+}
+else if (searched && results.Count == 0)
+{
+    <div class="empty">
+        <h3>İlan bulunamadı</h3>
+        <p>Arama kriterlerinize uygun ilan bulunamadı.</p>
+    </div>
+}
+else if (results.Count > 0)
+{
+    <h3 class="result-count">
+        @results.Count ilan bulundu
+    </h3>
+
+    <div class="property-grid">
+
+        @foreach (var r in results)
+        {
+            <div class="property-card"
+                 @onclick="() => OpenProperty(r.Id)">
+
+                @if (!string.IsNullOrWhiteSpace(r.CoverImageUrl))
+                {
+                    <img
+                        src="@r.CoverImageUrl"
+                        alt="@r.Title"
+                        class="property-image" />
+                }
+                else
+                {
+                    <div class="no-image">
+                        🏠
+                    </div>
+                }
+
+                <div class="property-content">
+
+                    <h3>@r.Title</h3>
+
+                    <p class="location">
+                        📍 @r.City
+                        @if (!string.IsNullOrWhiteSpace(r.Location))
+                        {
+                            <span> - @r.Location</span>
+                        }
+                    </p>
+
+                    <h2>
+                        @r.Price.ToString("N0") TL
+                    </h2>
+
+                    @if (r.IsPremium)
+                    {
+                        <span class="premium">
+                            ⭐ Premium İlan
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+        }
+
+    </div>
+}
+
+<style>
+
+    h1 {
+        margin-bottom: 25px;
+    }
+
+    .search-box {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+    }
+
+    .search-box input {
+        flex: 1;
+        padding: 14px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        font-size: 16px;
+    }
+
+    .search-box button {
+        padding: 14px 25px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .result-count {
+        margin-bottom: 20px;
+    }
+
+    .property-grid {
+        display: grid;
+        grid-template-columns:
+            repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+
+    .property-card {
+        border: 1px solid #ddd;
+        border-radius: 14px;
+        overflow: hidden;
+        background: white;
+        cursor: pointer;
+        transition: transform 0.15s;
+    }
+
+    .property-card:hover {
+        transform: translateY(-3px);
+    }
+
+    .property-image {
+        width: 100%;
+        height: 210px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .no-image {
+        width: 100%;
+        height: 210px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 60px;
+        background: #f3f3f3;
+    }
+
+    .property-content {
+        padding: 18px;
+    }
+
+    .property-content h3 {
+        margin-top: 0;
+        margin-bottom: 8px;
+    }
+
+    .property-content h2 {
+        margin-top: 12px;
+    }
+
+    .location {
+        color: #666;
+    }
+
+    .premium {
+        display: inline-block;
+        margin-top: 8px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        background: #ffc107;
+        color: #111;
+        font-weight: bold;
+        font-size: 13px;
+    }
+
+    .empty {
+        padding: 40px;
+        text-align: center;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+    }
+
+</style>
+
+@code {
+
+    string q = "";
+
+    List<PropertyDto> results = new();
+
+    bool loading = false;
+
+    bool searched = false;
+
+    async Task DoSearch()
+    {
+        loading = true;
+        searched = true;
+
+        try
+        {
+            results = await Service.Search(q.Trim());
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    void OpenProperty(int id)
+    {
+        Nav.NavigateTo($"/property/{id}");
+    }
+}

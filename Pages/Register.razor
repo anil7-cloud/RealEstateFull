@@ -1,0 +1,89 @@
+@page "/register"
+
+@inject REAL_ESTATE_CLEAN.Infrastructure.Auth.AuthService Auth
+@inject NavigationManager Nav
+
+<h3>Kayıt Ol</h3>
+
+<div>
+    <input placeholder="Email"
+           type="email"
+           @bind="email" />
+</div>
+
+<div>
+    <input placeholder="Şifre"
+           type="password"
+           @bind="password" />
+</div>
+
+<button @onclick="DoRegister">
+    Kayıt Ol
+</button>
+
+@if (!string.IsNullOrWhiteSpace(error))
+{
+    <p style="color:red">@error</p>
+}
+
+@if (!string.IsNullOrWhiteSpace(success))
+{
+    <p style="color:green">@success</p>
+}
+
+@code {
+    private string email = "";
+    private string password = "";
+    private string error = "";
+    private string success = "";
+
+    private async Task DoRegister()
+    {
+        error = "";
+        success = "";
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            error = "Email boş olamaz!";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            error = "Şifre boş olamaz!";
+            return;
+        }
+
+        if (password.Length < 6)
+        {
+            error = "Şifre en az 6 karakter olmalıdır!";
+            return;
+        }
+
+        try
+        {
+            Console.WriteLine($"REGISTER CALLED: {email}");
+
+            var result = await Auth.Register(
+                email.Trim(),
+                password);
+
+            if (!result)
+            {
+                error = "Bu email zaten kayıtlı!";
+                return;
+            }
+
+            success = "Kayıt başarılı!";
+
+            await Task.Delay(1000);
+
+            Nav.NavigateTo("/login");
+        }
+        catch (Exception ex)
+        {
+            error = $"Kayıt hatası: {ex.Message}";
+            Console.WriteLine($"REGISTER ERROR: {ex}");
+        }
+    }
+}

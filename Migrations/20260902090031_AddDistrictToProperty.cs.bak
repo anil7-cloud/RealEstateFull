@@ -1,0 +1,114 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace REAL_ESTATE_CLEAN.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddDistrictToProperty : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropForeignKey(
+                name: "FK_Properties_Users_AppUserId",
+                table: "Properties");
+
+            migrationBuilder.DropColumn(
+                name: "IsCover",
+                table: "PropertyMedia");
+
+            migrationBuilder.DropColumn(
+                name: "Url",
+                table: "PropertyMedia");
+
+            migrationBuilder.AlterColumn<int>(
+                name: "AppUserId",
+                table: "Properties",
+                type: "INTEGER",
+                nullable: false,
+                defaultValue: 0,
+                oldClrType: typeof(int),
+                oldType: "INTEGER",
+                oldNullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "District",
+                table: "Properties",
+                type: "TEXT",
+                nullable: false,
+                defaultValue: "");
+
+            migrationBuilder.AddColumn<string>(
+                name: "PropertyType",
+                table: "Properties",
+                type: "TEXT",
+                nullable: false,
+                defaultValue: "");
+
+            migrationBuilder.AddColumn<string>(
+                name: "RoomCount",
+                table: "Properties",
+                type: "TEXT",
+                nullable: false,
+                defaultValue: "");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Properties_Users_AppUserId",
+                table: "Properties",
+                column: "AppUserId",
+                principalTable: "Users",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropForeignKey(
+                name: "FK_Properties_Users_AppUserId",
+                table: "Properties");
+
+            migrationBuilder.DropColumn(
+                name: "District",
+                table: "Properties");
+
+            migrationBuilder.DropColumn(
+                name: "PropertyType",
+                table: "Properties");
+
+            migrationBuilder.DropColumn(
+                name: "RoomCount",
+                table: "Properties");
+
+            migrationBuilder.AddColumn<bool>(
+                name: "IsCover",
+                table: "PropertyMedia",
+                type: "INTEGER",
+                nullable: false,
+                defaultValue: false);
+
+            migrationBuilder.AddColumn<string>(
+                name: "Url",
+                table: "PropertyMedia",
+                type: "TEXT",
+                nullable: false,
+                defaultValue: "");
+
+            migrationBuilder.AlterColumn<int>(
+                name: "AppUserId",
+                table: "Properties",
+                type: "INTEGER",
+                nullable: true,
+                oldClrType: typeof(int),
+                oldType: "INTEGER");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Properties_Users_AppUserId",
+                table: "Properties",
+                column: "AppUserId",
+                principalTable: "Users",
+                principalColumn: "Id");
+        }
+    }
+}

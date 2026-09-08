@@ -1,0 +1,363 @@
+@page "/favorites"
+
+@using REAL_ESTATE_CLEAN.Core.Application.Services
+@using REAL_ESTATE_CLEAN.Core.Persistence
+@using REAL_ESTATE_CLEAN.Infrastructure.Auth
+
+@inject FavoriteService FavoriteService
+@inject PropertyService PropertyService
+@inject CurrentUserService CurrentUser
+@inject NavigationManager Nav
+
+<h1>❤️ Favorilerim</h1>
+
+@if (loading)
+{
+    <p>Favoriler yükleniyor...</p>
+}
+else if (!string.IsNullOrWhiteSpace(error))
+{
+    <p class="error">@error</p>
+}
+else if (favorites.Count == 0)
+{
+    <div class="empty">
+        <h2>❤️ Henüz favori ilanınız yok</h2>
+        <p>Beğendiğiniz ilanları favorilerinize ekleyebilirsiniz.</p>
+
+        <button @onclick='() => Nav.NavigateTo("/search")'>
+            🔎 İlan Ara
+        </button>
+    </div>
+}
+else
+{
+    <div class="header">
+        <span>
+            @favorites.Count favori ilan
+        </span>
+
+        <button @onclick='() => Nav.NavigateTo("/search")'>
+            🔎 Yeni İlan Ara
+        </button>
+    </div>
+
+    <div class="favorites-grid">
+
+        @foreach (var item in favorites)
+        {
+            <article class="favorite-card">
+
+                <div
+                    class="clickable"
+                    @onclick="() => OpenProperty(item.Id)">
+
+                    @if (!string.IsNullOrWhiteSpace(item.CoverImageUrl))
+                    {
+                        <img
+                            src="@item.CoverImageUrl"
+                            alt="@item.Title"
+                            class="property-image" />
+                    }
+                    else
+                    {
+                        <div class="no-image">
+                            🏠
+                            <span>Fotoğraf yok</span>
+                        </div>
+                    }
+
+                    <div class="property-content">
+
+                        <h2>@item.Title</h2>
+
+                        <p>
+                            📍 @item.City
+                        </p>
+
+                        <p>
+                            📍 @item.Location
+                        </p>
+
+                        <h3>
+                            💰 @item.Price.ToString("N0") ₺
+                        </h3>
+
+                        @if (item.IsPremium)
+                        {
+                            <span class="premium">
+                                ⭐ Premium
+                            </span>
+                        }
+
+                        <p class="views">
+                            👁️ @item.ViewCount görüntülenme
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <button
+                    class="remove"
+                    @onclick="() => RemoveFavorite(item.Id)"
+                    disabled="@removingIds.Contains(item.Id)">
+
+                    @(removingIds.Contains(item.Id)
+                        ? "Çıkarılıyor..."
+                        : "💔 Favoriden Çıkar")
+                </button>
+
+                <div class="favorite-actions">
+                    <button
+                        class="contact-button"
+                        @onclick="() => OpenContact(item.Id)">
+                        📞 İletişim
+                    </button>
+
+                    <button
+                        class="chat-button"
+                        @onclick="() => OpenChat(item.Id)">
+                        💬 Mesajlaşmaya Git
+                    </button>
+                </div>
+
+            </article>
+        }
+
+    </div>
+}
+
+<style>
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.header button,
+.empty button {
+    padding: 11px 18px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.favorites-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 25px;
+}
+
+.favorite-card {
+    background: white;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 5px 20px #ddd;
+}
+
+.clickable {
+    cursor: pointer;
+}
+
+.property-image,
+.no-image {
+    width: 100%;
+    height: 220px;
+}
+
+.property-image {
+    display: block;
+    object-fit: cover;
+}
+
+.no-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    background: #eee;
+    font-size: 18px;
+}
+
+.property-content {
+    padding: 20px;
+}
+
+.property-content h2 {
+    margin-top: 0;
+}
+
+.property-content h3 {
+    margin-bottom: 10px;
+}
+
+.premium {
+    display: inline-block;
+    background: #ffd700;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+.views {
+    color: #777;
+}
+
+.remove {
+    width: calc(100% - 40px);
+    margin: 0 20px 20px;
+    padding: 11px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.favorite-actions {
+    display: flex;
+    gap: 10px;
+    padding: 0 20px 20px;
+}
+
+.favorite-actions button {
+    flex: 1;
+    padding: 11px 8px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.contact-button {
+    background: #e8f5e9;
+}
+
+.chat-button {
+    background: #e3f2fd;
+}
+
+.empty {
+    padding: 40px;
+    text-align: center;
+    background: #f7f7f7;
+    border-radius: 18px;
+}
+
+.error {
+    color: red;
+}
+
+@@media (max-width: 900px) {
+    .favorites-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@@media (max-width: 600px) {
+    .favorites-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+</style>
+
+@code {
+
+    private List<PropertyDto> favorites = new();
+
+    private HashSet<int> removingIds = new();
+
+    private bool loading = true;
+
+    private string error = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (!CurrentUser.IsAuthenticated)
+            {
+                Nav.NavigateTo("/login");
+                return;
+            }
+
+            await LoadFavorites();
+        }
+        catch (Exception ex)
+        {
+            error = "Favoriler yüklenirken hata oluştu: " + ex.Message;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadFavorites()
+    {
+        if (!CurrentUser.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        var userId = CurrentUser.UserId!.Value;
+
+        favorites =
+            await FavoriteService.GetUserFavoritePropertyDtos(userId);
+    }
+
+    private void OpenProperty(int id)
+    {
+        Nav.NavigateTo($"/properties/{id}");
+    }
+
+    private void OpenContact(int propertyId)
+    {
+        Nav.NavigateTo($"/properties/{propertyId}");
+    }
+
+    private void OpenChat(int propertyId)
+    {
+        Nav.NavigateTo("/chat");
+    }
+
+    private async Task RemoveFavorite(int propertyId)
+    {
+        if (!CurrentUser.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        if (removingIds.Contains(propertyId))
+            return;
+
+        try
+        {
+            removingIds.Add(propertyId);
+
+            await FavoriteService.ToggleFavorite(
+                CurrentUser.UserId!.Value,
+                propertyId);
+
+            favorites.RemoveAll(x => x.Id == propertyId);
+        }
+        catch (Exception ex)
+        {
+            error =
+                "Favoriden çıkarılırken hata oluştu: " +
+                ex.Message;
+        }
+        finally
+        {
+            removingIds.Remove(propertyId);
+        }
+    }
+}
+

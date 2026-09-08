@@ -1,0 +1,63 @@
+@page "/lead-sms"
+
+@inject HttpClient Http
+
+<h1>Lead SMS</h1>
+
+@if (smsList == null)
+{
+    <p>Yükleniyor...</p>
+}
+else
+{
+    <div class="sms-list">
+
+        @foreach (var item in smsList)
+        {
+            <div class="sms-card">
+
+                <h3>@item.PhoneNumber</h3>
+
+                <p>
+                    @item.Message
+                </p>
+
+                <div>
+                    Durum:
+                    <b>@item.Status</b>
+                </div>
+
+                <small>
+                    Tarih: @item.CreatedAt
+                </small>
+
+            </div>
+        }
+
+    </div>
+}
+
+
+@code {
+
+    private List<SmsDto>? smsList;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        smsList = await Http.GetFromJsonAsync<List<SmsDto>>(
+            "api/lead-sms");
+    }
+
+
+    public class SmsDto
+    {
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        public string Message { get; set; } = string.Empty;
+
+        public string Status { get; set; } = "Draft";
+
+        public DateTime CreatedAt { get; set; }
+    }
+}

@@ -1,0 +1,210 @@
+@page "/profile"
+
+@using REAL_ESTATE_CLEAN.Core.Application.Services
+@using REAL_ESTATE_CLEAN.Core.Persistence
+@using REAL_ESTATE_CLEAN.Infrastructure.Auth
+
+@inject ProfileService ProfileService
+@inject CurrentUserService CurrentUser
+@inject NavigationManager Nav
+
+<h1>👤 Profilim</h1>
+
+@if (!CurrentUser.IsAuthenticated)
+{
+    <div class="message error">
+        Profilinizi görmek için giriş yapmalısınız.
+    </div>
+}
+else if (loading)
+{
+    <p>Profil yükleniyor...</p>
+}
+else if (profile is null)
+{
+    <div class="message error">
+        Profil bulunamadı.
+    </div>
+}
+else
+{
+    <div class="profile-card">
+
+        <h2>👤 Kullanıcı Bilgileri</h2>
+
+        <div class="field">
+            <label>Ad</label>
+            <input @bind="firstName" />
+        </div>
+
+        <div class="field">
+            <label>Soyad</label>
+            <input @bind="lastName" />
+        </div>
+
+        <div class="field">
+            <label>E-posta</label>
+            <input type="email" @bind="email" />
+        </div>
+
+        <div class="field">
+            <label>Telefon</label>
+            <input type="tel" @bind="phoneNumber" />
+        </div>
+
+        <button
+            class="save-button"
+            @onclick="Save"
+            disabled="@saving">
+
+            @(saving
+                ? "Kaydediliyor..."
+                : "💾 Profili Kaydet")
+
+        </button>
+
+        @if (!string.IsNullOrWhiteSpace(message))
+        {
+            <div class="message @(success ? "success" : "error")">
+                @message
+            </div>
+        }
+
+    </div>
+}
+
+<style>
+.profile-card {
+    max-width: 650px;
+    padding: 25px;
+    border: 1px solid #ddd;
+    border-radius: 16px;
+    background: white;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 18px;
+}
+
+.field label {
+    font-weight: 600;
+}
+
+.field input {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.save-button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #222;
+    color: white;
+}
+
+.message {
+    margin-top: 18px;
+    padding: 14px;
+    border-radius: 8px;
+}
+
+.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.error {
+    background: #ffebee;
+    color: #c62828;
+}
+</style>
+
+@code {
+    private AppUser? profile;
+
+    private string firstName = "";
+    private string lastName = "";
+    private string email = "";
+    private string phoneNumber = "";
+
+    private bool loading = true;
+    private bool saving;
+
+    private bool success;
+    private string message = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!CurrentUser.IsAuthenticated)
+        {
+            loading = false;
+            return;
+        }
+
+        var userId = CurrentUser.UserId;
+
+        if (!userId.HasValue)
+        {
+            loading = false;
+            return;
+        }
+
+        profile = await ProfileService.GetProfile(userId.Value);
+
+        if (profile is not null)
+        {
+            firstName = profile.FirstName;
+            lastName = profile.LastName;
+            email = profile.Email;
+            phoneNumber = profile.PhoneNumber;
+        }
+
+        loading = false;
+    }
+
+    private async Task Save()
+    {
+        if (!CurrentUser.IsAuthenticated ||
+            !CurrentUser.UserId.HasValue)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        saving = true;
+        message = "";
+
+        try
+        {
+            var result = await ProfileService.UpdateProfile(
+                CurrentUser.UserId.Value,
+                firstName,
+                lastName,
+                email,
+                phoneNumber);
+
+            if (result)
+            {
+                success = true;
+                message = "Profil başarıyla güncellendi.";
+            }
+            else
+            {
+                success = false;
+                message =
+                    "Profil güncellenemedi. E-posta zaten kullanılıyor olabilir.";
+            }
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+}

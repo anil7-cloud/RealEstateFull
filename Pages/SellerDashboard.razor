@@ -1,0 +1,313 @@
+@page "/seller-dashboard"
+
+@using REAL_ESTATE_CLEAN.Core.Application.DTOs.Statistics
+@using REAL_ESTATE_CLEAN.Core.Application.Services
+@using REAL_ESTATE_CLEAN.Infrastructure.Auth
+
+@inject PropertyStatisticsService StatisticsService
+@inject CurrentUserService CurrentUser
+
+<h1>📈 Satıcı Performans Dashboard'u</h1>
+
+@if (!CurrentUser.IsAuthenticated)
+{
+    <div class="message">
+        Dashboard'u görmek için giriş yapmalısınız.
+    </div>
+}
+else if (loading)
+{
+    <p>Dashboard yükleniyor...</p>
+}
+else
+{
+    <div class="cards">
+
+        <div class="card">
+            <span>🏠</span>
+            <strong>@statistics.Count</strong>
+            <small>Toplam İlan</small>
+        </div>
+
+        <div class="card">
+            <span>👁️</span>
+            <strong>@totalViews</strong>
+            <small>Görüntülenme</small>
+        </div>
+
+        <div class="card">
+            <span>❤️</span>
+            <strong>@totalFavorites</strong>
+            <small>Favori</small>
+        </div>
+
+        <div class="card">
+            <span>💬</span>
+            <strong>@totalMessages</strong>
+            <small>Mesaj</small>
+        </div>
+
+        <div class="card">
+            <span>📊</span>
+            <strong>@totalInteractions</strong>
+            <small>Toplam Etkileşim</small>
+        </div>
+
+        <div class="card">
+            <span>📈</span>
+            <strong>@averageViews.ToString("N1")</strong>
+            <small>İlan Başına Ortalama Görüntülenme</small>
+        </div>
+
+    </div>
+
+    @if (statistics.Count == 0)
+    {
+        <div class="message">
+            Henüz ilanınız bulunmuyor.
+        </div>
+    }
+    else
+    {
+        var best = statistics
+            .OrderByDescending(x => x.TotalInteractions)
+            .First();
+
+        <section class="highlight">
+            <h2>🏆 En Başarılı İlan</h2>
+
+            <h3>@best.Title</h3>
+
+            <p>📍 @best.City</p>
+            <p>💰 @best.Price.ToString("N0") ₺</p>
+            <p>👁️ @best.ViewCount görüntülenme</p>
+            <p>❤️ @best.FavoriteCount favori</p>
+            <p>💬 @best.MessageCount mesaj</p>
+
+            <strong>
+                📊 @best.TotalInteractions toplam etkileşim
+            </strong>
+        </section>
+
+        <section>
+            <h2>📋 İlan Performans Sıralaması</h2>
+
+            <div class="table-wrapper">
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>İlan</th>
+                            <th>Şehir</th>
+                            <th>Fiyat</th>
+                            <th>👁️</th>
+                            <th>❤️</th>
+                            <th>💬</th>
+                            <th>📊</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @{
+                            var rank = 1;
+                        }
+
+                        @foreach (var item in statistics
+                            .OrderByDescending(x => x.TotalInteractions))
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@rank</strong>
+                                </td>
+
+                                <td>@item.Title</td>
+
+                                <td>@item.City</td>
+
+                                <td>
+                                    @item.Price.ToString("N0") ₺
+                                </td>
+
+                                <td>@item.ViewCount</td>
+
+                                <td>@item.FavoriteCount</td>
+
+                                <td>@item.MessageCount</td>
+
+                                <td>
+                                    <strong>
+                                        @item.TotalInteractions
+                                    </strong>
+                                </td>
+                            </tr>
+
+                            rank++;
+                        }
+                    </tbody>
+                </table>
+
+            </div>
+        </section>
+
+        @if (statistics.Count > 1)
+        {
+            var lowest = statistics
+                .OrderBy(x => x.TotalInteractions)
+                .First();
+
+            <section class="highlight">
+                <h2>📉 En Düşük Performanslı İlan</h2>
+
+                <h3>@lowest.Title</h3>
+
+                <p>
+                    📊 @lowest.TotalInteractions toplam etkileşim
+                </p>
+
+                <p>
+                    👁️ @lowest.ViewCount görüntülenme
+                </p>
+
+                <p>
+                    ❤️ @lowest.FavoriteCount favori
+                </p>
+            </section>
+        }
+    }
+}
+
+<style>
+
+.cards {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fit, minmax(190px, 1fr));
+    gap: 18px;
+    margin: 25px 0;
+}
+
+.card {
+    padding: 22px;
+    border: 1px solid #ddd;
+    border-radius: 14px;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.card span {
+    font-size: 28px;
+}
+
+.card strong {
+    font-size: 30px;
+}
+
+.card small {
+    color: #666;
+}
+
+.highlight {
+    margin: 25px 0;
+    padding: 22px;
+    border: 1px solid #ddd;
+    border-radius: 14px;
+    background: #fafafa;
+}
+
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    margin-top: 15px;
+}
+
+th,
+td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background: #f5f5f5;
+}
+
+.message {
+    padding: 30px;
+    border-radius: 12px;
+    background: #f5f5f5;
+}
+
+@@media (max-width: 700px) {
+
+    th,
+    td {
+        white-space: nowrap;
+    }
+}
+
+</style>
+
+@code {
+
+    private List<PropertyStatisticsDto> statistics = new();
+
+    private int totalViews;
+    private int totalFavorites;
+    private int totalMessages;
+
+    private bool loading = true;
+
+    private int totalInteractions =>
+        totalViews +
+        totalFavorites +
+        totalMessages;
+
+    private double averageViews =>
+        statistics.Count == 0
+            ? 0
+            : (double)totalViews / statistics.Count;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!CurrentUser.IsAuthenticated)
+        {
+            loading = false;
+            return;
+        }
+
+        var userId = CurrentUser.UserId;
+
+        if (!userId.HasValue)
+        {
+            loading = false;
+            return;
+        }
+
+        statistics =
+            await StatisticsService.GetUserStatistics(
+                userId.Value);
+
+        totalViews =
+            await StatisticsService.GetTotalViews(
+                userId.Value);
+
+        totalFavorites =
+            await StatisticsService.GetTotalFavorites(
+                userId.Value);
+
+        totalMessages =
+            await StatisticsService.GetTotalMessages(
+                userId.Value);
+
+        loading = false;
+    }
+}

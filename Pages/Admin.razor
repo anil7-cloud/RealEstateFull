@@ -1,0 +1,22 @@
+@using REAL_ESTATE_CLEAN.Core.Application.Services
+@page "/admin"
+@inject REAL_ESTATE_CLEAN.Core.Application.AdminService Service
+
+<h3>Admin</h3>
+
+@if (properties != null)
+{
+    @foreach (var p in properties)
+    {
+        <div>@p.Title</div>
+    }
+}
+
+@code {
+    List<Property> properties = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        properties = await Service.GetAll();
+    }
+}

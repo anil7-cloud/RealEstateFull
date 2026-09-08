@@ -1,0 +1,45 @@
+.activity-list[b-4aiwuzdnnn]
+{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+    margin-top:30px;
+}
+
+
+.activity-card[b-4aiwuzdnnn]
+{
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 5px 20px rgba(0,0,0,0.08);
+}
+
+
+.activity-card h3[b-4aiwuzdnnn]
+{
+    margin-bottom:10px;
+    font-size:20px;
+}
+
+
+.activity-card p[b-4aiwuzdnnn]
+{
+    font-size:16px;
+}
+
+
+.activity-card span[b-4aiwuzdnnn]
+{
+    display:inline-block;
+    margin-top:10px;
+    padding:6px 12px;
+    border-radius:10px;
+}
+
+
+.activity-card small[b-4aiwuzdnnn]
+{
+    display:block;
+    margin-top:10px;
+}

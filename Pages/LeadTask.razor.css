@@ -1,0 +1,42 @@
+.task-list
+{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+    margin-top:30px;
+}
+
+
+.task-card
+{
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 5px 20px rgba(0,0,0,0.08);
+}
+
+
+.task-card h3
+{
+    font-size:20px;
+    margin-bottom:10px;
+}
+
+
+.task-card p
+{
+    color:#555;
+}
+
+
+.task-card b
+{
+    font-weight:bold;
+}
+
+
+.task-card small
+{
+    display:block;
+    margin-top:15px;
+}

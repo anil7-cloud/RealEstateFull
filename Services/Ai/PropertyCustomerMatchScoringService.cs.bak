@@ -1,0 +1,91 @@
+namespace REAL_ESTATE_CLEAN.Services.Ai
+{
+    public class PropertyCustomerMatchScoringService
+    {
+        public PropertyMatchScoreResult Calculate(
+            PropertyMatchScoreRequest request)
+        {
+            decimal score = 0;
+
+            // Fiyat uyumu: 30 puan
+            if (request.PriceMatched)
+                score += 30;
+
+            // Konum uyumu: 25 puan
+            if (request.LocationMatched)
+                score += 25;
+
+            // Gayrimenkul tipi: 15 puan
+            if (request.PropertyTypeMatched)
+                score += 15;
+
+            // Oda sayısı: 15 puan
+            if (request.RoomCountMatched)
+                score += 15;
+
+            // Metrekare: 15 puan
+            if (request.SizeMatched)
+                score += 15;
+
+            var reasons = new List<string>();
+
+            if (request.PriceMatched)
+                reasons.Add("Fiyat bütçeye uygun");
+
+            if (request.LocationMatched)
+                reasons.Add("Konum tercihiyle eşleşiyor");
+
+            if (request.PropertyTypeMatched)
+                reasons.Add("Gayrimenkul tipi uygun");
+
+            if (request.RoomCountMatched)
+                reasons.Add("Oda sayısı uygun");
+
+            if (request.SizeMatched)
+                reasons.Add("Metrekare beklentisi uygun");
+
+            return new PropertyMatchScoreResult
+            {
+                Score = score,
+                MatchLevel = GetMatchLevel(score),
+                Reason = reasons.Count == 0
+                    ? "Belirgin eşleşme bulunamadı"
+                    : string.Join(", ", reasons)
+            };
+        }
+
+        private static string GetMatchLevel(decimal score)
+        {
+            return score switch
+            {
+                >= 90 => "Excellent",
+                >= 75 => "VeryGood",
+                >= 60 => "Good",
+                >= 40 => "Medium",
+                _ => "Low"
+            };
+        }
+    }
+
+    public class PropertyMatchScoreRequest
+    {
+        public bool PriceMatched { get; set; }
+
+        public bool LocationMatched { get; set; }
+
+        public bool PropertyTypeMatched { get; set; }
+
+        public bool RoomCountMatched { get; set; }
+
+        public bool SizeMatched { get; set; }
+    }
+
+    public class PropertyMatchScoreResult
+    {
+        public decimal Score { get; set; }
+
+        public string MatchLevel { get; set; } = string.Empty;
+
+        public string Reason { get; set; } = string.Empty;
+    }
+}

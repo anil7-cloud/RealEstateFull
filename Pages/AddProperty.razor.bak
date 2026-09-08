@@ -1,0 +1,206 @@
+@page "/add-property"
+
+@using REAL_ESTATE_CLEAN.Core.Persistence
+@using Microsoft.EntityFrameworkCore
+
+@inject AppDbContext Db
+@inject NavigationManager Nav
+
+<h3>🏠 Yeni İlan Ekle</h3>
+
+<div class="form">
+
+    <div>
+        <label>İlan Başlığı</label>
+        <input @bind="title"
+               placeholder="Örn: 3+1 Lüks Daire" />
+    </div>
+
+    <div>
+        <label>Konum</label>
+        <input @bind="location"
+               placeholder="Örn: Çankaya, Kızılay" />
+    </div>
+
+    <div>
+        <label>Şehir</label>
+        <input @bind="city"
+               placeholder="Örn: Ankara" />
+    </div>
+
+    <div>
+        <label>Fiyat</label>
+        <input @bind="price"
+               type="number"
+               step="0.01"
+               placeholder="Örn: 5000000" />
+    </div>
+
+    <div class="checkbox">
+        <input type="checkbox"
+               @bind="isPremium" />
+        <label>Premium İlan</label>
+    </div>
+
+    <button @onclick="AddProperty"
+            disabled="@isSaving">
+
+        @(isSaving ? "Kaydediliyor..." : "İlanı Ekle")
+
+    </button>
+
+</div>
+
+@if (!string.IsNullOrWhiteSpace(error))
+{
+    <p class="error">@error</p>
+}
+
+@if (!string.IsNullOrWhiteSpace(success))
+{
+    <p class="success">@success</p>
+}
+
+@code {
+
+    private string title = "";
+    private string location = "";
+    private string city = "";
+    private decimal price;
+
+    private bool isPremium;
+    private bool isSaving;
+
+    private string error = "";
+    private string success = "";
+
+    private async Task AddProperty()
+    {
+        error = "";
+        success = "";
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            error = "İlan başlığı boş olamaz.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(location))
+        {
+            error = "Konum boş olamaz.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(city))
+        {
+            error = "Şehir boş olamaz.";
+            return;
+        }
+
+        if (price <= 0)
+        {
+            error = "Fiyat 0'dan büyük olmalıdır.";
+            return;
+        }
+
+        try
+        {
+            isSaving = true;
+
+            var property = new Property
+            {
+                Title = title.Trim(),
+                Location = location.Trim(),
+                City = city.Trim(),
+                Price = price,
+                IsPremium = isPremium,
+                IsActive = true,
+                ViewCount = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            Db.Properties.Add(property);
+
+            await Db.SaveChangesAsync();
+
+            Console.WriteLine(
+                $"PROPERTY CREATED: Id={property.Id}, Title={property.Title}, Price={property.Price}");
+
+            success = "İlan başarıyla kaydedildi.";
+
+            await Task.Delay(700);
+
+            Nav.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            error = $"İlan kaydedilemedi: {ex.Message}";
+
+            Console.WriteLine(
+                $"PROPERTY CREATE ERROR: {ex}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}
+
+<style>
+
+.form {
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.form div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form input[type="text"],
+.form input[type="number"],
+.form input:not([type]) {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.checkbox {
+    flex-direction: row !important;
+    align-items: center;
+    gap: 8px !important;
+}
+
+button {
+    width: fit-content;
+    padding: 11px 20px;
+    border: none;
+    border-radius: 8px;
+    background: #5b6cff;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.error {
+    color: red;
+    font-weight: bold;
+}
+
+.success {
+    color: green;
+    font-weight: bold;
+}
+
+</style>
+

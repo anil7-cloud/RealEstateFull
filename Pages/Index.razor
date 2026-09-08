@@ -1,0 +1,149 @@
+@page "/"
+
+@using Microsoft.EntityFrameworkCore
+@inject REAL_ESTATE_CLEAN.Core.Persistence.AppDbContext Db
+
+<h1>🏠 Real Estate Dashboard TEST</h1>
+
+<div class="cards">
+
+    <div class="card">
+        <h3>🏢 İlanlar</h3>
+        <h2>@propertyCount</h2>
+        <p>Aktif ilan</p>
+    </div>
+
+    <div class="card">
+        <h3>👥 Müşteriler</h3>
+        <h2>@customerCount</h2>
+        <p>Users tablosu</p>
+    </div>
+
+    <div class="card">
+        <h3>🎯 Lead</h3>
+        <h2>@leadCount</h2>
+        <p>Potansiyel müşteri</p>
+    </div>
+
+    <div class="card">
+        <h3>💰 Gelir</h3>
+        <h2>₺@income.ToString("N0")</h2>
+        <p>Alınmış gelir</p>
+    </div>
+
+</div>
+
+<h2>DB TEST</h2>
+
+<p><strong>Users:</strong> @customerCount</p>
+<p><strong>Properties:</strong> @propertyCount</p>
+<p><strong>Leads:</strong> @leadCount</p>
+<p><strong>Income:</strong> ₺@income.ToString("N0")</p>
+
+@if (activities.Count == 0)
+{
+    <p>Henüz aktivite bulunmuyor.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Başlık</th>
+                <th>Aktivite</th>
+                <th>Sonuç</th>
+                <th>Tarih</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var item in activities)
+            {
+                <tr>
+                    <td>@item.Title</td>
+                    <td>@item.ActivityType</td>
+                    <td>@item.Result</td>
+                    <td>@item.ActivityDate.ToString("dd.MM.yyyy HH:mm")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+
+    private int propertyCount;
+    private int customerCount;
+    private int leadCount;
+    private decimal income;
+
+    private List<REAL_ESTATE_CLEAN.Core.Persistence.LeadActivity> activities = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        propertyCount = await Db.Properties
+            .CountAsync(x => x.IsActive);
+
+        customerCount = await Db.Users
+            .CountAsync();
+
+        leadCount = await Db.Leads
+            .CountAsync();
+
+        var receivedIncomes = await Db.PropertyIncomes
+            .Where(x => x.IsReceived)
+            .Select(x => x.Amount)
+            .ToListAsync();
+
+        income = receivedIncomes.Sum();
+
+        activities = await Db.LeadActivities
+            .OrderByDescending(x => x.ActivityDate)
+            .Take(10)
+            .ToListAsync();
+
+        Console.WriteLine("================================");
+        Console.WriteLine($"DASHBOARD USERS = {customerCount}");
+        Console.WriteLine($"DASHBOARD PROPERTIES = {propertyCount}");
+        Console.WriteLine($"DASHBOARD LEADS = {leadCount}");
+        Console.WriteLine($"DASHBOARD INCOME = {income}");
+        Console.WriteLine("================================");
+    }
+}
+
+<style>
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px #ddd;
+}
+
+.card h2 {
+    font-size: 32px;
+    margin: 10px 0;
+}
+
+table {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+    background: white;
+}
+
+th,
+td {
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+}
+
+</style>

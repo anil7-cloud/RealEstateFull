@@ -1,0 +1,142 @@
+@inherits LayoutComponentBase
+
+@namespace REAL_ESTATE_CLEAN.Shared
+
+@using REAL_ESTATE_CLEAN.Infrastructure.Auth
+
+@inject CurrentUserService CurrentUser
+@inject NavigationManager Nav
+@using REAL_ESTATE_CLEAN.Core.Application.Services
+@inject NotificationService NotificationService
+
+<div class="topbar">
+
+    <a href="/">Home</a>
+    <a href="/properties">Properties</a>
+    <a href="/add-property">Add Property</a>
+    <a href="/search">Search</a>
+    <a href="/favorites">❤️ Favoriler</a>
+    <a href="/notifications">
+        🔔 Bildirimler
+        @if (unreadNotificationCount > 0)
+        {
+            <span class="notification-badge">
+                @unreadNotificationCount
+            </span>
+        }
+    </a>
+    <a href="/chat">Chat</a>
+
+    @if (CurrentUser.IsAuthenticated)
+    {
+        <span class="user-info">
+            👤 @CurrentUser.Email
+        </span>
+
+        @if (string.Equals(
+            CurrentUser.Role,
+            "Admin",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            <a href="/admin">Admin</a>
+        }
+
+        <button class="logout-button"
+                @onclick="Logout">
+            Çıkış
+        </button>
+    }
+    else
+    {
+        <a href="/login">Login</a>
+        <a href="/register">Register</a>
+    }
+
+</div>
+
+<div class="content">
+    @Body
+</div>
+
+<style>
+
+.topbar {
+    background: #222;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.topbar a {
+    color: white;
+    text-decoration: none;
+}
+
+.topbar a:hover {
+    color: orange;
+}
+
+.user-info {
+    color: #fff;
+    margin-left: auto;
+}
+
+.notification-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    margin-left: 4px;
+    border-radius: 10px;
+    background: #e53935;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.logout-button {
+    background: #c62828;
+    color: white;
+    border: none;
+    padding: 7px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.logout-button:hover {
+    background: #e53935;
+}
+
+.content {
+    padding: 20px;
+}
+
+</style>
+
+@code {
+    private int unreadNotificationCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (CurrentUser.IsAuthenticated &&
+            CurrentUser.UserId.HasValue)
+        {
+            unreadNotificationCount =
+                await NotificationService.GetUnreadCount(
+                    CurrentUser.UserId.Value);
+        }
+    }
+
+
+    private void Logout()
+    {
+        CurrentUser.Clear();
+
+        Nav.NavigateTo("/login");
+    }
+
+}

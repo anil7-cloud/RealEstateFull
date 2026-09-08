@@ -1,0 +1,39 @@
+@page "/payment/{id:int}"
+@using REAL_ESTATE_CLEAN.Core.Persistence
+@using REAL_ESTATE_CLEAN.Core.Application.Services
+@inject REAL_ESTATE_CLEAN.Core.Application.Services.PaymentService PaymentService
+
+<h3>Ödeme Detayı</h3>
+
+@if (payment == null)
+{
+    <p>Ödeme bulunamadı.</p>
+}
+else
+{
+    <table class="table">
+        <tr><td><b>ID</b></td><td>@payment.Id</td></tr>
+        <tr><td><b>Kullanıcı</b></td><td>@payment.UserId</td></tr>
+        <tr><td><b>İlan</b></td><td>@payment.PropertyId</td></tr>
+        <tr><td><b>Tutar</b></td><td>@payment.Amount</td></tr>
+        <tr><td><b>Para Birimi</b></td><td>@payment.Currency</td></tr>
+        <tr><td><b>Yöntem</b></td><td>@payment.PaymentMethod</td></tr>
+        <tr><td><b>Durum</b></td><td>@payment.Status</td></tr>
+        <tr><td><b>İşlem No</b></td><td>@payment.TransactionId</td></tr>
+        <tr><td><b>Tarih</b></td><td>@payment.PaidAt.ToLocalTime()</td></tr>
+    </table>
+}
+
+@code {
+
+    [Parameter]
+    public int Id { get; set; }
+
+    private Payment? payment;
+
+    protected override async Task OnInitializedAsync()
+    {
+        payment = await PaymentService.GetPaymentById(Id);
+    }
+
+}

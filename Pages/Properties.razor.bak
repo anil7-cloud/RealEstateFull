@@ -1,0 +1,95 @@
+@page "/properties"
+@using Microsoft.AspNetCore.Components.Authorization
+@using REAL_ESTATE_CLEAN.Core.Application.DTO
+@using REAL_ESTATE_CLEAN.Core.Application.Services
+@inject PropertyService PropertyService
+@inject FavoriteService FavoriteService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h3>İlanlar</h3>
+
+<div>
+    <input @bind="city" placeholder="Şehir" />
+    <input type="number" @bind="minPrice" placeholder="Minimum fiyat" />
+    <input type="number" @bind="maxPrice" placeholder="Maksimum fiyat" />
+    <button @onclick="FilterProperties">Ara</button>
+</div>
+
+@if (properties.Count == 0)
+{
+    <p>İlan bulunamadı.</p>
+}
+else
+{
+    @foreach (var property in properties)
+    {
+        <article>
+            <h4>@property.Title</h4>
+            <p>@property.Location</p>
+            <p>@property.City</p>
+            <p>@property.Price.ToString("N2") ₺</p>
+
+            <button @onclick="() => ToggleFavorite(property.Id)"
+                    disabled="@(userId <= 0)">
+                @(favoriteIds.Contains(property.Id)
+                    ? "❤️ Beğenildi"
+                    : "🤍 Beğen")
+            </button>
+        </article>
+    }
+}
+
+@code {
+    private string city = string.Empty;
+    private decimal? minPrice;
+    private decimal? maxPrice;
+
+    private int userId;
+
+    private List<PropertyDto> properties = new();
+    private List<int> favoriteIds = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        properties =
+            await PropertyService.GetAll()
+            ?? new List<PropertyDto>();
+
+        var authState =
+            await AuthStateProvider.GetAuthenticationStateAsync();
+
+        var userIdValue =
+            authState.User.FindFirst("UserId")?.Value;
+
+        if (int.TryParse(userIdValue, out userId))
+        {
+            favoriteIds =
+                await FavoriteService.GetUserFavoriteIds(userId);
+        }
+    }
+
+    private async Task FilterProperties()
+    {
+        properties =
+            await PropertyService.Filter(
+                city,
+                minPrice,
+                maxPrice)
+            ?? new List<PropertyDto>();
+    }
+
+    private async Task ToggleFavorite(int propertyId)
+    {
+        if (userId <= 0)
+            return;
+
+        await FavoriteService.ToggleFavorite(
+            userId,
+            propertyId);
+
+        if (favoriteIds.Contains(propertyId))
+            favoriteIds.Remove(propertyId);
+        else
+            favoriteIds.Add(propertyId);
+    }
+}

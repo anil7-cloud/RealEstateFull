@@ -1,0 +1,793 @@
+@using Microsoft.JSInterop
+@using REAL_ESTATE_CLEAN.Infrastructure.Auth
+@using Microsoft.EntityFrameworkCore
+@page "/properties/{Id:int}"
+@using REAL_ESTATE_CLEAN.Core.Application.DTO
+@using REAL_ESTATE_CLEAN.Core.Application.Services
+@using REAL_ESTATE_CLEAN.Core.Persistence
+@inject PropertyService PropertyService
+@inject FavoriteService FavoriteService
+@inject CurrentUserService CurrentUser
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject AppDbContext Db
+
+<PageTitle>İlan Detayı</PageTitle>
+
+<div class="container mt-4">
+
+    @if (loading)
+    {
+        <div class="alert alert-info">
+            İlan yükleniyor...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">
+            @errorMessage
+        </div>
+    }
+    else if (property is null)
+    {
+        <div class="alert alert-warning">
+            İlan bulunamadı.
+        </div>
+    }
+    else
+    {
+        <div class="mb-4">
+            <h1>@property.Title</h1>
+
+            <div class="text-muted">
+                @property.City - @property.Location
+            </div>
+
+            <h3 class="mt-2">
+                @property.Price.ToString("N0") TL
+            </h3>
+
+            @if (property.IsPremium)
+            {
+                <span class="badge bg-warning text-dark">
+                    Premium İlan
+                </span>
+            }
+        </div>
+
+        @if (images.Count > 0)
+        {
+            
+@if (panorama360 is not null)
+{
+    <div class="panorama-section">
+
+        <h3>🔄 360° Sanal Tur</h3>
+
+        <div
+            id="panorama-360"
+            class="panorama-viewer"
+            style='background-image:url("@panorama360.MediaUrl");'>
+
+            <div class="panorama-help">
+                🖱️ Fareyle sağa/sola sürükleyin
+                <br />
+                📱 Telefonda parmağınızla sürükleyin
+            </div>
+
+        </div>
+
+    </div>
+}
+
+<h3>Fotoğraflar</h3>
+
+            var cover =
+                images.FirstOrDefault(x => x.IsCover)
+                ?? images.First();
+
+            <div class="mb-4">
+                <img src="@cover.Url"
+                     alt="@property.Title"
+                     style="
+                        width:100%;
+                        max-height:520px;
+                        object-fit:cover;
+                        border-radius:12px;" />
+            </div>
+
+            <div style="
+                    display:grid;
+                    grid-template-columns:
+                        repeat(auto-fill,minmax(180px,1fr));
+                    gap:12px;
+                    margin-bottom:30px;">
+
+                @foreach (var image in images)
+                {
+                    <div>
+                        <img src="@image.Url"
+                             alt="@image.OriginalFileName"
+                             style="
+                                width:100%;
+                                height:150px;
+                                object-fit:cover;
+                                border-radius:8px;" />
+
+                        @if (image.IsCover)
+                        {
+                            <div class="mt-1">
+                                <span class="badge bg-primary">
+                                    Kapak Fotoğrafı
+                                </span>
+                            </div>
+                        }
+
+                        @if (CurrentUser.IsAuthenticated)
+                        {
+                            <div style="margin-top:8px;">
+                                @if (!image.IsCover)
+                                {
+                                    <button
+                                        @onclick="() => SetCover(image.Id)"
+                                        style="margin-right:5px;">
+                                        ⭐ Kapak Yap
+                                    </button>
+                                }
+
+                                <button
+                                    @onclick="() => DeleteMedia(image.Id)"
+                                    style="background:#dc3545;color:white;">
+                                    🗑️ Sil
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-secondary">
+                Bu ilana henüz fotoğraf eklenmemiş.
+            </div>
+        }
+
+        @if (panorama360 is not null)
+        {
+            <div class="mt-4 mb-4">
+                <h3>🔄 360° Sanal Tur</h3>
+
+                <div class="panorama360-container">
+                    <img src="@panorama360.Url"
+                         alt="360° sanal tur"
+                         class="panorama360-image"
+                         @ref="panoramaElement" />
+
+                    <div class="panorama360-help">
+                        🖱️ Fare ile sağa-sola sürükleyin
+                        <br />
+                        📱 Telefonda parmağınızla sağa-sola kaydırın
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (videos.Count > 0)
+        {
+            <h3 class="mt-4">
+                Videolar
+            </h3>
+
+            @foreach (var video in videos)
+            {
+                <div class="mb-4">
+                    <video controls
+                           preload="metadata"
+                           style="
+                              width:100%;
+                              max-width:900px;
+                              border-radius:12px;">
+                        <source src="@video.Url"
+                                type="@GetVideoContentType(video)" />
+
+                        Tarayıcınız video oynatmayı desteklemiyor.
+                    </video>
+
+                    @if (!string.IsNullOrWhiteSpace(
+                        video.OriginalFileName))
+                    {
+                        <div class="text-muted mt-1">
+                            @video.OriginalFileName
+                        </div>
+                    }
+                </div>
+            }
+        }
+
+        <div class="mt-4">
+            <a href="/Properties"
+               class="btn btn-outline-secondary">
+                İlanlara Dön
+            </a>
+        </div>
+    }
+
+</div>
+
+@code
+{
+    [Parameter]
+    public int Id { get; set; }
+
+    private ElementReference panoramaElement;
+
+    private PropertyDto? property;
+
+    private List<PropertyMedia> media = new();
+
+    private List<PropertyMedia> images =>
+        media
+            .Where(x =>
+                string.Equals(
+                    x.MediaType,
+                    "Image",
+                    StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(x => x.IsCover)
+            .ThenBy(x => x.DisplayOrder)
+            .ToList();
+
+    private List<PropertyMedia> videos =>
+        media
+            .Where(x =>
+                string.Equals(
+                    x.MediaType,
+                    "Video",
+                    StringComparison.OrdinalIgnoreCase))
+            .OrderBy(x => x.DisplayOrder)
+            .ToList();
+
+    private PropertyMedia? panorama360 =>
+        media
+            .Where(x =>
+                string.Equals(
+                    x.MediaType,
+                    "Panorama360",
+                    StringComparison.OrdinalIgnoreCase))
+            .OrderBy(x => x.DisplayOrder)
+            .FirstOrDefault();
+
+    private string? panorama360Url;
+
+    private async Task DeleteMedia(int mediaId)
+    {
+        if (!CurrentUser.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        var userId = CurrentUser.UserId!.Value;
+
+        var deleted =
+            await PropertyService.DeleteMediaByUserId(
+                mediaId,
+                userId);
+
+        if (!deleted)
+        {
+            errorMessage =
+                "Bu medyayı silme yetkiniz yok.";
+            return;
+        }
+
+        media = await Db.PropertyMedia
+            .Where(x => x.PropertyId == Id)
+            .OrderBy(x => x.DisplayOrder)
+            .ToListAsync();
+
+        panorama360Url = media
+            .Where(x => x.MediaType == "Panorama360")
+            .Select(x => x.MediaUrl)
+            .FirstOrDefault();
+
+        similarProperties =
+            await PropertyService.GetSimilarProperties(
+                Id,
+                property!.City,
+                property.Price);
+
+        isFavorite =
+            await FavoriteService.IsFavorite(
+                CurrentUser.UserId!.Value,
+                Id);
+
+        StateHasChanged();
+    }
+
+    private async Task SetCover(int mediaId)
+    {
+        if (!CurrentUser.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        var userId = CurrentUser.UserId!.Value;
+
+        var result =
+            await PropertyService.SetCoverMediaByUserId(
+                mediaId,
+                userId);
+
+        if (!result)
+        {
+            errorMessage =
+                "Kapak fotoğrafını değiştirme yetkiniz yok.";
+            return;
+        }
+
+        media = await Db.PropertyMedia
+            .Where(x => x.PropertyId == Id)
+            .OrderBy(x => x.DisplayOrder)
+            .ToListAsync();
+
+        StateHasChanged();
+    }
+
+
+    private List<PropertyDto> similarProperties = new();
+
+    private bool isFavorite;
+
+    private bool showContact;
+
+    private bool loading = true;
+
+    private string? errorMessage;
+
+
+    protected override async Task OnAfterRenderAsync(
+        bool firstRender)
+    {
+        if (panorama360 is not null)
+        {
+            await JS.InvokeVoidAsync(
+                "panorama360.init");
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+{
+    loading = true;
+    errorMessage = null;
+
+    try
+    {
+        if (!CurrentUser.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        property = await PropertyService.GetById(Id);
+
+        if (property is null)
+        {
+            errorMessage = "İlan bulunamadı.";
+            return;
+        }
+
+        await PropertyService.IncrementViewCount(Id);
+
+        property = await PropertyService.GetById(Id);
+
+        if (property is null)
+        {
+            errorMessage = "İlan bulunamadı.";
+            return;
+        }
+
+        // Admin bütün ilanları görebilir.
+        // Normal kullanıcı sadece kendi ilanını görebilir.
+        if (!string.Equals(
+                CurrentUser.Role,
+                "Admin",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            var belongsToUser =
+                await PropertyService.BelongsToUser(
+                    Id,
+                    CurrentUser.UserId!.Value);
+
+            if (!belongsToUser)
+            {
+                property = null;
+                errorMessage =
+                    "Bu ilana erişim yetkiniz yok.";
+                return;
+            }
+        }
+
+        media = await Db.PropertyMedia
+            .Where(x => x.PropertyId == Id)
+            .OrderBy(x => x.DisplayOrder)
+            .ToListAsync();
+
+        panorama360Url = media
+            .Where(x => x.MediaType == "Panorama360")
+            .Select(x => x.MediaUrl)
+            .FirstOrDefault();
+    }
+    catch (Exception ex)
+    {
+        errorMessage =
+            "İlan yüklenirken hata oluştu: " +
+            ex.Message;
+    }
+    finally
+    {
+        loading = false;
+    }
+}
+
+    private async Task ToggleFavorite()
+    {
+        if (!CurrentUser.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        await FavoriteService.ToggleFavorite(
+            CurrentUser.UserId!.Value,
+            Id);
+
+        isFavorite =
+            await FavoriteService.IsFavorite(
+                CurrentUser.UserId!.Value,
+                Id);
+    }
+
+    private void ToggleContact()
+    {
+        showContact = !showContact;
+    }
+
+    private void OpenSimilarProperty(int id)
+    {
+        Nav.NavigateTo($"/properties/{id}");
+    }
+
+    private static string GetVideoContentType(
+        PropertyMedia video)
+    {
+        if (!string.IsNullOrWhiteSpace(
+            video.ContentType) &&
+            video.ContentType.StartsWith(
+                "video/",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return video.ContentType;
+        }
+
+        var extension =
+            Path.GetExtension(video.Url)
+                .ToLowerInvariant();
+
+        return extension switch
+        {
+            ".webm" => "video/webm",
+            ".mov" => "video/quicktime",
+            _ => "video/mp4"
+        };
+    }
+}
+
+
+@if (property is not null)
+{
+    <div class="property-actions">
+
+        <span class="view-count">
+            👁️ @property.ViewCount görüntülenme
+        </span>
+
+        <button @onclick="ToggleFavorite">
+            @(isFavorite ? "❤️ Favoride" : "🤍 Favoriye Ekle")
+        </button>
+
+        <button @onclick="ToggleContact">
+            📞 İletişim
+        </button>
+
+    </div>
+
+    @if (showContact)
+    {
+        <div class="contact-box">
+            <h3>📞 İlan sahibiyle iletişim</h3>
+
+            <p>
+                Bu ilan hakkında iletişim kurmak için
+                mesajlaşma bölümünü kullanabilirsiniz.
+            </p>
+
+            <button @onclick='() => Nav.NavigateTo("/chat")'>
+                💬 Mesajlaşmaya Git
+            </button>
+        </div>
+    }
+
+    @if (similarProperties.Count > 0)
+    {
+        <section class="similar-section">
+
+            <h2>🏠 Benzer İlanlar</h2>
+
+            <div class="similar-grid">
+
+                @foreach (var similar in similarProperties)
+                {
+                    <article
+                        class="similar-card"
+                        @onclick="() => OpenSimilarProperty(similar.Id)">
+
+                        @if (!string.IsNullOrWhiteSpace(similar.CoverImageUrl))
+                        {
+                            <img
+                                src="@similar.CoverImageUrl"
+                                alt="@similar.Title"
+                                class="similar-image" />
+                        }
+                        else
+                        {
+                            <div class="similar-no-image">
+                                🏠 Fotoğraf yok
+                            </div>
+                        }
+
+                        <h3>@similar.Title</h3>
+
+                        <p>
+                            📍 @similar.City
+                        </p>
+
+                        <p>
+                            📍 @similar.Location
+                        </p>
+
+                        <h4>
+                            💰 @similar.Price.ToString("N0") ₺
+                        </h4>
+
+                        @if (similar.IsPremium)
+                        {
+                            <span class="similar-premium">
+                                ⭐ Premium
+                            </span>
+                        }
+
+                    </article>
+                }
+
+            </div>
+
+        </section>
+    }
+}
+
+<style>
+.panorama360-wrapper {
+    margin: 30px 0;
+}
+
+.panorama360-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 12px;
+}
+
+.panorama360-title h3 {
+    margin: 0;
+}
+
+.panorama360-title span {
+    color: #777;
+    font-size: 14px;
+}
+
+.panorama360-container {
+    position: relative;
+    width: 100%;
+    max-width: 1100px;
+    height: 550px;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #111;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    outline: none;
+}
+
+.panorama360-container:active {
+    cursor: grabbing;
+}
+
+.panorama360-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+    transform-origin: center center;
+}
+
+.panorama360-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.panorama360-help {
+    position: absolute;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: rgba(0,0,0,.65);
+    color: white;
+    text-align: center;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.panorama360-controls {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    display: flex;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+.panorama360-button {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background: rgba(0,0,0,.72);
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.panorama360-button:hover {
+    background: rgba(0,0,0,.9);
+}
+
+.panorama360-container:fullscreen {
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    border-radius: 0;
+}
+
+@media (max-width: 700px) {
+
+    .panorama360-container {
+        height: 420px;
+        border-radius: 12px;
+    }
+
+    .panorama360-title {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .panorama360-help {
+        bottom: 12px;
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+
+    .panorama360-controls {
+        top: 10px;
+        right: 10px;
+    }
+
+    .panorama360-button {
+        width: 38px;
+        height: 38px;
+    }
+}
+
+.detail-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+}
+
+.detail-actions button {
+    padding: 12px 18px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.view-count {
+    display: inline-block;
+    padding: 10px 15px;
+    background: #f3f3f3;
+    border-radius: 10px;
+    margin: 10px 0;
+}
+
+.contact-box {
+    margin: 15px 0;
+    padding: 18px;
+    background: #f7f7f7;
+    border-radius: 12px;
+}
+
+.similar-section {
+    margin-top: 40px;
+}
+
+.similar-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.similar-card {
+    background: white;
+    border-radius: 15px;
+    padding: 18px;
+    box-shadow: 0 4px 15px #ddd;
+    cursor: pointer;
+}
+
+.similar-card:hover {
+    transform: translateY(-2px);
+}
+
+.similar-image {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.similar-no-image {
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eee;
+    border-radius: 10px;
+}
+
+@media (max-width: 800px) {
+    .similar-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 550px) {
+    .similar-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+</style>

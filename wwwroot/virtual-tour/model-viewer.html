@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>3D Emlak Görünümü</title>
+
+    <link
+        rel="stylesheet"
+        href="/virtual-tour/model-viewer.css">
+</head>
+
+<body>
+
+<div id="viewer">
+
+    <canvas id="modelCanvas"></canvas>
+
+    <div id="loading">
+        3D model yükleniyor...
+    </div>
+
+    <div id="topBar">
+        <div>
+            <div id="tourTitle">
+                3D Emlak Görünümü
+            </div>
+
+            <div id="modelTitle"></div>
+        </div>
+
+        <button
+            id="fullscreenButton"
+            type="button">
+            Tam Ekran
+        </button>
+    </div>
+
+    <div id="controls">
+
+        <button
+            id="zoomIn"
+            type="button"
+            title="Yakınlaştır">
+            +
+        </button>
+
+        <button
+            id="zoomOut"
+            type="button"
+            title="Uzaklaştır">
+            −
+        </button>
+
+        <button
+            id="resetView"
+            type="button"
+            title="Görünümü sıfırla">
+            ⟳
+        </button>
+
+        <button
+            id="autoRotate"
+            type="button"
+            title="Otomatik döndür">
+            360°
+        </button>
+
+    </div>
+
+    <div id="modelList"></div>
+
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+}
+</script>
+
+<script
+    type="module"
+    src="/virtual-tour/model-viewer.js">
+</script>
+
+</body>
+</html>

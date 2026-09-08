@@ -1,0 +1,546 @@
+using Microsoft.EntityFrameworkCore;
+using REAL_ESTATE_CLEAN.Core.Domain.Entities;
+using REAL_ESTATE_CLEAN.Core.Persistence;
+
+namespace REAL_ESTATE_CLEAN.Services.Ai
+{
+    public class PropertyCustomerMatchSalesAutomationBatchJobRepository
+    {
+        private readonly AppDbContext _dbContext;
+
+        public PropertyCustomerMatchSalesAutomationBatchJobRepository(
+            AppDbContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
+
+        public async Task<PropertyMatchSalesAutomationBatchJob>
+            CreateAsync(
+                PropertyMatchSalesAutomationBatchJob entity,
+                CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+
+            if (entity.Id == Guid.Empty)
+                entity.Id = Guid.NewGuid();
+
+            if (entity.JobId == Guid.Empty)
+                entity.JobId = Guid.NewGuid();
+
+            var now = DateTime.UtcNow;
+
+            if (entity.CreatedAt == default)
+                entity.CreatedAt = now;
+
+            entity.UpdatedAt = now;
+
+            await _dbContext
+                .PropertyMatchSalesAutomationBatchJobs
+                .AddAsync(
+                    entity,
+                    cancellationToken);
+
+            await _dbContext
+                .SaveChangesAsync(
+                    cancellationToken);
+
+            return entity;
+        }
+
+        public async Task<PropertyMatchSalesAutomationBatchJob?>
+            GetByJobIdAsync(
+                Guid jobId,
+                CancellationToken cancellationToken = default)
+        {
+            return await _dbContext
+                .PropertyMatchSalesAutomationBatchJobs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => x.JobId == jobId,
+                    cancellationToken);
+        }
+
+        public async Task<PropertyMatchSalesAutomationBatchJob?>
+            GetByBatchIdAsync(
+                Guid batchId,
+                CancellationToken cancellationToken = default)
+        {
+            return await _dbContext
+                .PropertyMatchSalesAutomationBatchJobs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => x.BatchId == batchId,
+                    cancellationToken);
+        }
+
+        public async Task<List<PropertyMatchSalesAutomationBatchJob>>
+            GetAllAsync(
+                int limit = 100,
+                CancellationToken cancellationToken = default)
+        {
+            limit = NormalizeLimit(limit);
+
+            return await _dbContext
+                .PropertyMatchSalesAutomationBatchJobs
+                .AsNoTracking()
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(limit)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<PropertyMatchSalesAutomationBatchJob>>
+            GetByStatusAsync(
+                string status,
+                int limit = 100,
+                CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(status))
+                return new();
+
+            limit = NormalizeLimit(limit);
+
+            return await _dbContext
+                .PropertyMatchSalesAutomationBatchJobs
+                .AsNoTracking()
+                .Where(x => x.Status == status)
+                .OrderByDescending(x => x.UpdatedAt)
+                .Take(limit)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<PropertyMatchSalesAutomationBatchJob?>
+            UpdateAsync(
+                PropertyMatchSalesAutomationBatchJob entity,
+                CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+
+            var existing =
+                await _dbContext
+                    .PropertyMatchSalesAutomationBatchJobs
+                    .FirstOrDefaultAsync(
+                        x => x.JobId == entity.JobId,
+                        cancellationToken);
+
+            if (existing == null)
+                return null;
+
+            existing.BatchId =
+                entity.BatchId;
+
+            existing.Status =
+                entity.Status;
+
+            existing.Actor =
+                entity.Actor;
+
+            existing.CorrelationId =
+                entity.CorrelationId;
+
+            existing.TotalRequested =
+                entity.TotalRequested;
+
+            existing.Processed =
+                entity.Processed;
+
+            existing.Successful =
+                entity.Successful;
+
+            existing.Completed =
+                entity.Completed;
+
+            existing.Failed =
+                entity.Failed;
+
+            existing.AwaitingApproval =
+                entity.AwaitingApproval;
+
+            existing.SuccessRate =
+                entity.SuccessRate;
+
+            existing.FailureRate =
+                entity.FailureRate;
+
+            existing.DurationMilliseconds =
+                entity.DurationMilliseconds;
+
+            existing.ErrorCode =
+                entity.ErrorCode;
+
+            existing.ErrorMessage =
+                entity.ErrorMessage;
+
+            existing.ResultJson =
+                entity.ResultJson;
+
+            existing.StartedAt =
+                entity.StartedAt;
+
+            existing.CompletedAt =
+                entity.CompletedAt;
+
+            existing.UpdatedAt =
+                DateTime.UtcNow;
+
+            await _dbContext
+                .SaveChangesAsync(
+                    cancellationToken);
+
+            return existing;
+        }
+
+        public async Task<bool>
+            DeleteAsync(
+                Guid jobId,
+                CancellationToken cancellationToken = default)
+        {
+            var entity =
+                await _dbContext
+                    .PropertyMatchSalesAutomationBatchJobs
+                    .FirstOrDefaultAsync(
+                        x => x.JobId == jobId,
+                        cancellationToken);
+
+            if (entity == null)
+                return false;
+
+            _dbContext
+                .PropertyMatchSalesAutomationBatchJobs
+                .Remove(entity);
+
+            await _dbContext
+                .SaveChangesAsync(
+                    cancellationToken);
+
+            return true;
+        }
+
+        public async Task<int>
+            DeleteCompletedAsync(
+                CancellationToken cancellationToken = default)
+        {
+            var entities =
+                await _dbContext
+                    .PropertyMatchSalesAutomationBatchJobs
+                    .Where(x =>
+                        x.Status == "Completed" ||
+                        x.Status == "Cancelled")
+                    .ToListAsync(
+                        cancellationToken);
+
+            if (entities.Count == 0)
+                return 0;
+
+            _dbContext
+                .PropertyMatchSalesAutomationBatchJobs
+                .RemoveRange(entities);
+
+            await _dbContext
+                .SaveChangesAsync(
+                    cancellationToken);
+
+            return entities.Count;
+        }
+
+        public async Task<
+            PropertyMatchSalesAutomationBatchJobPersistentSummaryDto>
+            GetSummaryAsync(
+                CancellationToken cancellationToken = default)
+        {
+            var jobs =
+                await _dbContext
+                    .PropertyMatchSalesAutomationBatchJobs
+                    .AsNoTracking()
+                    .ToListAsync(
+                        cancellationToken);
+
+            var processed =
+                jobs.Sum(x => x.Processed);
+
+            var successful =
+                jobs.Sum(x => x.Successful);
+
+            var failed =
+                jobs.Sum(x => x.Failed);
+
+            return new
+                PropertyMatchSalesAutomationBatchJobPersistentSummaryDto
+                {
+                    TotalJobs =
+                        jobs.Count,
+
+                    RunningJobs =
+                        jobs.Count(x =>
+                            x.Status == "Running"),
+
+                    CompletedJobs =
+                        jobs.Count(x =>
+                            x.Status == "Completed"),
+
+                    PartiallyCompletedJobs =
+                        jobs.Count(x =>
+                            x.Status == "PartiallyCompleted"),
+
+                    FailedJobs =
+                        jobs.Count(x =>
+                            x.Status == "Failed"),
+
+                    CancelledJobs =
+                        jobs.Count(x =>
+                            x.Status == "Cancelled"),
+
+                    TotalProcessed =
+                        processed,
+
+                    TotalSuccessful =
+                        successful,
+
+                    TotalFailed =
+                        failed,
+
+                    SuccessRate =
+                        Percentage(
+                            successful,
+                            processed),
+
+                    FailureRate =
+                        Percentage(
+                            failed,
+                            processed),
+
+                    GeneratedAt =
+                        DateTime.UtcNow
+                };
+        }
+
+
+        public async Task<List<PropertyMatchSalesAutomationBatchJob>>
+            GetRetryHistoryAsync(
+                Guid jobId,
+                CancellationToken cancellationToken = default)
+        {
+            var allJobs =
+                await _dbContext
+                    .PropertyMatchSalesAutomationBatchJobs
+                    .AsNoTracking()
+                    .OrderBy(x => x.CreatedAt)
+                    .ToListAsync(cancellationToken);
+
+            var current =
+                allJobs.FirstOrDefault(
+                    x => x.JobId == jobId);
+
+            if (current == null)
+                return new();
+
+            // Önce zincirin en eski atasını bul.
+            var root =
+                current;
+
+            var visited =
+                new HashSet<Guid>();
+
+            while (root.ParentJobId.HasValue)
+            {
+                if (!visited.Add(root.JobId))
+                    break;
+
+                var parent =
+                    allJobs.FirstOrDefault(
+                        x => x.JobId == root.ParentJobId.Value);
+
+                if (parent == null)
+                    break;
+
+                root = parent;
+            }
+
+            // Root'tan başlayarak çocuk retry kayıtlarını takip et.
+            var result =
+                new List<PropertyMatchSalesAutomationBatchJob>();
+
+            var node =
+                root;
+
+            visited.Clear();
+
+            while (node != null)
+            {
+                if (!visited.Add(node.JobId))
+                    break;
+
+                result.Add(node);
+
+                node =
+                    allJobs
+                        .Where(x =>
+                            x.ParentJobId == node.JobId)
+                        .OrderBy(x => x.RetryCount)
+                        .ThenBy(x => x.CreatedAt)
+                        .FirstOrDefault();
+            }
+
+            return result;
+        }
+
+
+        public async Task<Guid?>
+            TryClaimRetryAsync(
+                Guid jobId,
+                TimeSpan claimTimeout,
+                CancellationToken cancellationToken = default)
+        {
+            var now =
+                DateTime.UtcNow;
+
+            var staleBefore =
+                now.Subtract(
+                    claimTimeout);
+
+            var claimToken =
+                Guid.NewGuid();
+
+            var affectedRows =
+                await _dbContext
+                    .PropertyMatchSalesAutomationBatchJobs
+                    .Where(x =>
+                        x.JobId == jobId &&
+                        (
+                            !x.RetryClaimed ||
+                            !x.RetryClaimedAt.HasValue ||
+                            x.RetryClaimedAt.Value <= staleBefore
+                        ))
+                    .ExecuteUpdateAsync(
+                        setters => setters
+
+                            .SetProperty(
+                                x => x.RetryClaimed,
+                                true)
+
+                            .SetProperty(
+                                x => x.RetryClaimToken,
+                                claimToken)
+
+                            .SetProperty(
+                                x => x.RetryClaimedAt,
+                                now)
+
+                            .SetProperty(
+                                x => x.UpdatedAt,
+                                now),
+
+                        cancellationToken);
+
+            return affectedRows == 1
+                ? claimToken
+                : null;
+        }
+
+        public async Task<bool>
+            ReleaseRetryClaimAsync(
+                Guid jobId,
+                Guid claimToken,
+                CancellationToken cancellationToken = default)
+        {
+            var now =
+                DateTime.UtcNow;
+
+            var affectedRows =
+                await _dbContext
+                    .PropertyMatchSalesAutomationBatchJobs
+                    .Where(x =>
+                        x.JobId == jobId &&
+                        x.RetryClaimed &&
+                        x.RetryClaimToken == claimToken)
+                    .ExecuteUpdateAsync(
+                        setters => setters
+
+                            .SetProperty(
+                                x => x.RetryClaimed,
+                                false)
+
+                            .SetProperty(
+                                x => x.RetryClaimToken,
+                                (Guid?)null)
+
+                            .SetProperty(
+                                x => x.RetryClaimedAt,
+                                (DateTime?)null)
+
+                            .SetProperty(
+                                x => x.UpdatedAt,
+                                now),
+
+                        cancellationToken);
+
+            return affectedRows == 1;
+        }
+
+        public async Task<bool>
+            CanConnectAsync(
+                CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                return await _dbContext
+                    .Database
+                    .CanConnectAsync(
+                        cancellationToken);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static int NormalizeLimit(
+            int limit)
+        {
+            if (limit < 1)
+                return 10;
+
+            return Math.Min(
+                limit,
+                1000);
+        }
+
+        private static decimal Percentage(
+            int value,
+            int total)
+        {
+            if (total <= 0)
+                return 0;
+
+            return Math.Round(
+                ((decimal)value / total) * 100m,
+                2);
+        }
+    }
+
+    public class PropertyMatchSalesAutomationBatchJobPersistentSummaryDto
+    {
+        public int TotalJobs { get; set; }
+
+        public int RunningJobs { get; set; }
+
+        public int CompletedJobs { get; set; }
+
+        public int PartiallyCompletedJobs { get; set; }
+
+        public int FailedJobs { get; set; }
+
+        public int CancelledJobs { get; set; }
+
+        public int TotalProcessed { get; set; }
+
+        public int TotalSuccessful { get; set; }
+
+        public int TotalFailed { get; set; }
+
+        public decimal SuccessRate { get; set; }
+
+        public decimal FailureRate { get; set; }
+
+        public DateTime GeneratedAt { get; set; }
+    }
+}

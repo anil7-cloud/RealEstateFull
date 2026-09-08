@@ -1,0 +1,68 @@
+@page "/chat"
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager Navigation
+
+<h3>💬 Chat</h3>
+
+<input @bind="message" placeholder="Mesaj yaz..." />
+<button @onclick="Send" disabled="@(!CanSend)">Gönder</button>
+
+<ul>
+    @foreach (var item in messages)
+    {
+        <li>@item</li>
+    }
+</ul>
+
+@code {
+    private string message = string.Empty;
+    private readonly List<string> messages = new();
+    private HubConnection? hubConnection;
+
+    private const int ReceiverId = 2;
+
+    private bool CanSend =>
+        hubConnection?.State == HubConnectionState.Connected &&
+        !string.IsNullOrWhiteSpace(message);
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        hubConnection.On<int, string>(
+            "ReceiveMessage",
+            async (senderId, receivedMessage) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    messages.Add($"Kullanıcı {senderId}: {receivedMessage}");
+                    StateHasChanged();
+                });
+            });
+
+        await hubConnection.StartAsync();
+    }
+
+    private async Task Send()
+    {
+        if (!CanSend || hubConnection is null)
+            return;
+
+        await hubConnection.SendAsync(
+            "SendMessage",
+            ReceiverId,
+            message.Trim());
+
+        message = string.Empty;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+            await hubConnection.DisposeAsync();
+    }
+}

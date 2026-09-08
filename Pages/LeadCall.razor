@@ -1,0 +1,71 @@
+@page "/lead-call"
+
+@inject HttpClient Http
+
+<h1>Lead Calls</h1>
+
+@if (calls == null)
+{
+    <p>Yükleniyor...</p>
+}
+else
+{
+    <div class="call-list">
+
+        @foreach (var item in calls)
+        {
+            <div class="call-card">
+
+                <h3>@item.PhoneNumber</h3>
+
+                <p>
+                    Tip:
+                    <b>@item.CallType</b>
+                </p>
+
+                <p>
+                    Durum:
+                    <b>@item.Status</b>
+                </p>
+
+                <p>
+                    Sonuç:
+                    @item.Result
+                </p>
+
+                <small>
+                    Tarih: @item.CallDate
+                </small>
+
+            </div>
+        }
+
+    </div>
+}
+
+
+@code {
+
+    private List<CallDto>? calls;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        calls = await Http.GetFromJsonAsync<List<CallDto>>(
+            "api/lead-call");
+    }
+
+
+    public class CallDto
+    {
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        public string CallType { get; set; } = "Outgoing";
+
+        public string Status { get; set; } = "Scheduled";
+
+        public string Result { get; set; } = string.Empty;
+
+        public DateTime CallDate { get; set; }
+    }
+}

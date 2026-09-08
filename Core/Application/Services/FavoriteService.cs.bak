@@ -1,0 +1,78 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using REAL_ESTATE_CLEAN.Core.Persistence;
+
+public class FavoriteService
+{
+    private readonly AppDbContext _context;
+
+    public FavoriteService(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task AddFavorite(int userId, int propertyId)
+    {
+        var exists = _context.Favorites.Any(x =>
+            x.UserId == userId &&
+            x.PropertyId == propertyId);
+
+        if (exists)
+            return;
+
+        _context.Favorites.Add(new Favorite
+        {
+            UserId = userId,
+            PropertyId = propertyId
+        });
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task ToggleFavorite(int userId, int propertyId)
+    {
+        var fav = _context.Favorites
+            .FirstOrDefault(x =>
+                x.UserId == userId &&
+                x.PropertyId == propertyId);
+
+        if (fav == null)
+        {
+            _context.Favorites.Add(new Favorite
+            {
+                UserId = userId,
+                PropertyId = propertyId
+            });
+        }
+        else
+        {
+            _context.Favorites.Remove(fav);
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    public List<Property> GetUserFavorites(int userId)
+    {
+        return _context.Favorites
+            .Where(x => x.UserId == userId)
+            .Select(x => x.Property)
+            .ToList();
+    }
+
+    public bool IsFavorite(int userId, int propertyId)
+    {
+        return _context.Favorites.Any(x =>
+            x.UserId == userId &&
+            x.PropertyId == propertyId);
+    }
+
+    public List<int> GetUserFavoriteIds(int userId)
+    {
+        return _context.Favorites
+            .Where(x => x.UserId == userId)
+            .Select(x => x.PropertyId)
+            .ToList();
+    }
+}

@@ -1,0 +1,241 @@
+@page "/properties/{Id:int}"
+@using REAL_ESTATE_CLEAN.Core.Application.DTO
+@using REAL_ESTATE_CLEAN.Core.Application.Services
+@using REAL_ESTATE_CLEAN.Core.Persistence
+@using System.Net.Http.Json
+@inject PropertyService PropertyService
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>İlan Detayı</PageTitle>
+
+<div class="container mt-4">
+
+    @if (loading)
+    {
+        <div class="alert alert-info">
+            İlan yükleniyor...
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">
+            @errorMessage
+        </div>
+    }
+    else if (property is null)
+    {
+        <div class="alert alert-warning">
+            İlan bulunamadı.
+        </div>
+    }
+    else
+    {
+        <div class="mb-4">
+            <h1>@property.Title</h1>
+
+            <div class="text-muted">
+                @property.City - @property.Location
+            </div>
+
+            <h3 class="mt-2">
+                @property.Price.ToString("N0") TL
+            </h3>
+
+            @if (property.IsPremium)
+            {
+                <span class="badge bg-warning text-dark">
+                    Premium İlan
+                </span>
+            }
+        </div>
+
+        @if (images.Count > 0)
+        {
+            <h3>Fotoğraflar</h3>
+
+            var cover =
+                images.FirstOrDefault(x => x.IsCover)
+                ?? images.First();
+
+            <div class="mb-4">
+                <img src="@cover.Url"
+                     alt="@property.Title"
+                     style="
+                        width:100%;
+                        max-height:520px;
+                        object-fit:cover;
+                        border-radius:12px;" />
+            </div>
+
+            <div style="
+                    display:grid;
+                    grid-template-columns:
+                        repeat(auto-fill,minmax(180px,1fr));
+                    gap:12px;
+                    margin-bottom:30px;">
+
+                @foreach (var image in images)
+                {
+                    <div>
+                        <img src="@image.Url"
+                             alt="@image.OriginalFileName"
+                             style="
+                                width:100%;
+                                height:150px;
+                                object-fit:cover;
+                                border-radius:8px;" />
+
+                        @if (image.IsCover)
+                        {
+                            <div class="mt-1">
+                                <span class="badge bg-primary">
+                                    Kapak Fotoğrafı
+                                </span>
+                            </div>
+                        }
+                    </div>
+                }
+
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-secondary">
+                Bu ilana henüz fotoğraf eklenmemiş.
+            </div>
+        }
+
+        @if (videos.Count > 0)
+        {
+            <h3 class="mt-4">
+                Videolar
+            </h3>
+
+            @foreach (var video in videos)
+            {
+                <div class="mb-4">
+                    <video controls
+                           preload="metadata"
+                           style="
+                              width:100%;
+                              max-width:900px;
+                              border-radius:12px;">
+                        <source src="@video.Url"
+                                type="@GetVideoContentType(video)" />
+
+                        Tarayıcınız video oynatmayı desteklemiyor.
+                    </video>
+
+                    @if (!string.IsNullOrWhiteSpace(
+                        video.OriginalFileName))
+                    {
+                        <div class="text-muted mt-1">
+                            @video.OriginalFileName
+                        </div>
+                    }
+                </div>
+            }
+        }
+
+        <div class="mt-4">
+            <a href="/Properties"
+               class="btn btn-outline-secondary">
+                İlanlara Dön
+            </a>
+        </div>
+    }
+
+</div>
+
+@code
+{
+    [Parameter]
+    public int Id { get; set; }
+
+    private PropertyDto? property;
+
+    private List<PropertyMedia> media = new();
+
+    private List<PropertyMedia> images =>
+        media
+            .Where(x =>
+                string.Equals(
+                    x.MediaType,
+                    "Image",
+                    StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(x => x.IsCover)
+            .ThenBy(x => x.DisplayOrder)
+            .ToList();
+
+    private List<PropertyMedia> videos =>
+        media
+            .Where(x =>
+                string.Equals(
+                    x.MediaType,
+                    "Video",
+                    StringComparison.OrdinalIgnoreCase))
+            .OrderBy(x => x.DisplayOrder)
+            .ToList();
+
+    private bool loading = true;
+
+    private string? errorMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+        errorMessage = null;
+
+        try
+        {
+            property =
+                await PropertyService.GetById(Id);
+
+            if (property is null)
+                return;
+
+            var client =
+                HttpClientFactory.CreateClient();
+
+            media =
+                await client.GetFromJsonAsync<
+                    List<PropertyMedia>>(
+                    $"/api/properties/{Id}/media")
+                ?? new List<PropertyMedia>();
+        }
+        catch (Exception ex)
+        {
+            errorMessage =
+                "İlan yüklenirken hata oluştu: " +
+                ex.Message;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private static string GetVideoContentType(
+        PropertyMedia video)
+    {
+        if (!string.IsNullOrWhiteSpace(
+            video.ContentType) &&
+            video.ContentType.StartsWith(
+                "video/",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return video.ContentType;
+        }
+
+        var extension =
+            Path.GetExtension(video.Url)
+                .ToLowerInvariant();
+
+        return extension switch
+        {
+            ".webm" => "video/webm",
+            ".mov" => "video/quicktime",
+            _ => "video/mp4"
+        };
+    }
+}

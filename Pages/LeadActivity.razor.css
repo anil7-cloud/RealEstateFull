@@ -1,0 +1,45 @@
+.activity-list
+{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+    margin-top:30px;
+}
+
+
+.activity-card
+{
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 5px 20px rgba(0,0,0,0.08);
+}
+
+
+.activity-card h3
+{
+    margin-bottom:10px;
+    font-size:20px;
+}
+
+
+.activity-card p
+{
+    font-size:16px;
+}
+
+
+.activity-card span
+{
+    display:inline-block;
+    margin-top:10px;
+    padding:6px 12px;
+    border-radius:10px;
+}
+
+
+.activity-card small
+{
+    display:block;
+    margin-top:10px;
+}

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>İlan Görüntüleme</title>
+
+    <link
+        rel="stylesheet"
+        href="/virtual-tour/property-media.css">
+</head>
+
+<body>
+
+<div id="propertyMedia">
+
+    <div id="mediaHeader">
+        <div>
+            <div id="propertyTitle">
+                İlan Görüntüleme
+            </div>
+
+            <div id="mediaStatus">
+                Medya yükleniyor...
+            </div>
+        </div>
+
+        <button
+            id="fullscreenButton"
+            type="button">
+            Tam Ekran
+        </button>
+    </div>
+
+    <div id="tabs">
+
+        <button
+            class="tab active"
+            data-mode="photos">
+            Fotoğraflar
+        </button>
+
+        <button
+            class="tab"
+            data-mode="tour360">
+            360° Tur
+        </button>
+
+        <button
+            class="tab"
+            data-mode="model3d">
+            3D Görünüm
+        </button>
+
+    </div>
+
+    <main id="mediaContent">
+
+        <section
+            id="photosPanel"
+            class="media-panel active">
+
+            <div id="mainPhotoContainer">
+
+                <img
+                    id="mainPhoto"
+                    alt="İlan fotoğrafı">
+
+                <div
+                    id="photoEmpty"
+                    class="empty-message">
+                    Fotoğraf bulunamadı.
+                </div>
+
+                <button
+                    id="previousPhoto"
+                    class="photo-navigation previous"
+                    type="button">
+                    ‹
+                </button>
+
+                <button
+                    id="nextPhoto"
+                    class="photo-navigation next"
+                    type="button">
+                    ›
+                </button>
+
+            </div>
+
+            <div id="photoThumbnails"></div>
+
+        </section>
+
+
+        <section
+            id="tour360Panel"
+            class="media-panel">
+
+            <div id="panoramaUploadPanel">
+
+                <h3>360° Panorama Yükle</h3>
+
+                <div class="panorama-upload-grid">
+
+                    <label>
+                        Panorama fotoğrafı
+                        <input
+                            id="panoramaFile"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp">
+                    </label>
+
+                    <label>
+                        Tur adı
+                        <input
+                            id="panoramaTitle"
+                            type="text"
+                            value="360 Daire Turu">
+                    </label>
+
+                    <label>
+                        Oda / Sahne
+                        <input
+                            id="panoramaSceneName"
+                            type="text"
+                            value="Salon">
+                    </label>
+
+                    <button
+                        id="uploadPanoramaButton"
+                        type="button">
+                        360° Turu Yükle
+                    </button>
+
+                </div>
+
+                <div
+                    id="panoramaUploadStatus">
+                </div>
+
+            </div>
+
+            <div id="hotspotEditorPanel">
+                <h3>360° Oda Geçişi Ekle</h3>
+
+                <div class="panorama-upload-grid">
+
+                    <label>
+                        Kaynak oda
+                        <select id="hotspotSourceScene">
+                            <option value="">
+                                Oda seçin
+                            </option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Hedef oda
+                        <select id="hotspotTargetScene">
+                            <option value="">
+                                Oda seçin
+                            </option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Geçiş başlığı
+                        <input
+                            id="hotspotTitle"
+                            type="text"
+                            placeholder="Örn: Mutfağa Git">
+                    </label>
+
+                    <label>
+                        Yaw
+                        <input
+                            id="hotspotYaw"
+                            type="number"
+                            step="1"
+                            value="0">
+                    </label>
+
+                    <label>
+                        Pitch
+                        <input
+                            id="hotspotPitch"
+                            type="number"
+                            step="1"
+                            value="0">
+                    </label>
+
+                    <button
+                        id="addHotspotButton"
+                        type="button">
+                        Hotspot Ekle
+                    </button>
+
+                </div>
+
+                <div id="hotspotEditorStatus"></div>
+
+                <div id="hotspotListPanel">
+                    <h4>Mevcut Oda Geçişleri</h4>
+
+                    <div id="hotspotList">
+                        Henüz geçiş yüklenmedi.
+                    </div>
+                </div>
+            </div>
+
+            <iframe
+                id="tour360Frame"
+                title="360 derece sanal tur"
+                allowfullscreen>
+            </iframe>
+
+            <div
+                id="tour360Empty"
+                class="empty-message">
+                Bu ilanda 360° tur bulunmuyor.
+            </div>
+
+        </section>
+
+
+        <section
+            id="model3dPanel"
+            class="media-panel">
+
+            <iframe
+                id="model3dFrame"
+                title="3D emlak modeli"
+                allowfullscreen>
+            </iframe>
+
+            <div
+                id="model3dEmpty"
+                class="empty-message">
+                Bu ilanda 3D model bulunmuyor.
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script
+    src="/virtual-tour/property-media.js?v=20">
+</script>
+
+</body>
+</html>

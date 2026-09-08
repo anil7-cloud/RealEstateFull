@@ -1,0 +1,4 @@
+LeadStatus.New
+LeadStatus.Won
+LeadStatus.Lost
+LeadStatus.Contacted

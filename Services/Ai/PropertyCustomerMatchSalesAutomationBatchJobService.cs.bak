@@ -1,0 +1,401 @@
+using System.Collections.Concurrent;
+
+namespace REAL_ESTATE_CLEAN.Services.Ai
+{
+    public class PropertyCustomerMatchSalesAutomationBatchJobService
+    {
+        private readonly
+            PropertyCustomerMatchSalesAutomationBatchRuntimeService
+                _batchRuntimeService;
+
+        private readonly ConcurrentDictionary<
+            Guid,
+            PropertyMatchSalesAutomationBatchJobDto>
+                _jobs = new();
+
+        public PropertyCustomerMatchSalesAutomationBatchJobService(
+            PropertyCustomerMatchSalesAutomationBatchRuntimeService batchRuntimeService)
+        {
+            _batchRuntimeService =
+                batchRuntimeService;
+        }
+
+        public async Task<PropertyMatchSalesAutomationBatchJobDto>
+            CreateAndRunAsync(
+                PropertyMatchSalesAutomationBatchRuntimeRequestDto request,
+                CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            var job =
+                new PropertyMatchSalesAutomationBatchJobDto
+                {
+                    JobId =
+                        Guid.NewGuid(),
+
+                    Status =
+                        "Running",
+
+                    Actor =
+                        request.Actor,
+
+                    TotalRequested =
+                        request.MatchIds?
+                            .Where(x => x > 0)
+                            .Distinct()
+                            .Count()
+                        ?? 0,
+
+                    CreatedAt =
+                        DateTime.UtcNow,
+
+                    StartedAt =
+                        DateTime.UtcNow
+                };
+
+            _jobs[job.JobId] =
+                job;
+
+            try
+            {
+                var result =
+                    await _batchRuntimeService
+                        .RunAsync(
+                            request,
+                            cancellationToken);
+
+                job.BatchId =
+                    result.BatchId;
+
+                job.Status =
+                    result.Status;
+
+                job.Processed =
+                    result.Processed;
+
+                job.Successful =
+                    result.Successful;
+
+                job.Completed =
+                    result.Completed;
+
+                job.Failed =
+                    result.Failed;
+
+                job.AwaitingApproval =
+                    result.AwaitingApproval;
+
+                job.SuccessRate =
+                    result.SuccessRate;
+
+                job.FailureRate =
+                    result.FailureRate;
+
+                job.DurationMilliseconds =
+                    result.DurationMilliseconds;
+
+                job.Result =
+                    result;
+
+                job.CompletedAt =
+                    DateTime.UtcNow;
+
+                job.UpdatedAt =
+                    DateTime.UtcNow;
+
+                return job;
+            }
+            catch (OperationCanceledException)
+            {
+                job.Status =
+                    "Cancelled";
+
+                job.ErrorMessage =
+                    "Batch job iptal edildi.";
+
+                job.CompletedAt =
+                    DateTime.UtcNow;
+
+                job.UpdatedAt =
+                    DateTime.UtcNow;
+
+                throw;
+            }
+            catch (Exception ex)
+            {
+                job.Status =
+                    "Failed";
+
+                job.ErrorCode =
+                    ex.GetType().Name;
+
+                job.ErrorMessage =
+                    ex.Message;
+
+                job.CompletedAt =
+                    DateTime.UtcNow;
+
+                job.UpdatedAt =
+                    DateTime.UtcNow;
+
+                return job;
+            }
+        }
+
+        public Task<PropertyMatchSalesAutomationBatchJobDto?>
+            GetAsync(
+                Guid jobId)
+        {
+            _jobs.TryGetValue(
+                jobId,
+                out var job);
+
+            return Task.FromResult(job);
+        }
+
+        public Task<List<PropertyMatchSalesAutomationBatchJobDto>>
+            GetAllAsync(
+                int limit = 100)
+        {
+            var result =
+                _jobs.Values
+                    .OrderByDescending(
+                        x => x.CreatedAt)
+                    .Take(
+                        NormalizeLimit(limit))
+                    .ToList();
+
+            return Task.FromResult(result);
+        }
+
+        public Task<List<PropertyMatchSalesAutomationBatchJobDto>>
+            GetRunningAsync()
+        {
+            var result =
+                _jobs.Values
+                    .Where(x =>
+                        x.Status == "Running")
+                    .OrderBy(
+                        x => x.StartedAt)
+                    .ToList();
+
+            return Task.FromResult(result);
+        }
+
+        public Task<List<PropertyMatchSalesAutomationBatchJobDto>>
+            GetFailedAsync(
+                int limit = 100)
+        {
+            var result =
+                _jobs.Values
+                    .Where(x =>
+                        x.Status == "Failed" ||
+                        x.Status == "PartiallyCompleted")
+                    .OrderByDescending(
+                        x => x.UpdatedAt)
+                    .Take(
+                        NormalizeLimit(limit))
+                    .ToList();
+
+            return Task.FromResult(result);
+        }
+
+        public Task<PropertyMatchSalesAutomationBatchJobSummaryDto>
+            GetSummaryAsync()
+        {
+            var jobs =
+                _jobs.Values
+                    .ToList();
+
+            var summary =
+                new PropertyMatchSalesAutomationBatchJobSummaryDto
+                {
+                    TotalJobs =
+                        jobs.Count,
+
+                    RunningJobs =
+                        jobs.Count(x =>
+                            x.Status == "Running"),
+
+                    CompletedJobs =
+                        jobs.Count(x =>
+                            x.Status == "Completed"),
+
+                    PartiallyCompletedJobs =
+                        jobs.Count(x =>
+                            x.Status == "PartiallyCompleted"),
+
+                    FailedJobs =
+                        jobs.Count(x =>
+                            x.Status == "Failed"),
+
+                    CancelledJobs =
+                        jobs.Count(x =>
+                            x.Status == "Cancelled"),
+
+                    TotalProcessed =
+                        jobs.Sum(x =>
+                            x.Processed),
+
+                    TotalSuccessful =
+                        jobs.Sum(x =>
+                            x.Successful),
+
+                    TotalFailed =
+                        jobs.Sum(x =>
+                            x.Failed),
+
+                    GeneratedAt =
+                        DateTime.UtcNow
+                };
+
+            summary.SuccessRate =
+                Percentage(
+                    summary.TotalSuccessful,
+                    summary.TotalProcessed);
+
+            summary.FailureRate =
+                Percentage(
+                    summary.TotalFailed,
+                    summary.TotalProcessed);
+
+            return Task.FromResult(summary);
+        }
+
+        public Task<bool>
+            RemoveAsync(
+                Guid jobId)
+        {
+            return Task.FromResult(
+                _jobs.TryRemove(
+                    jobId,
+                    out _));
+        }
+
+        public Task<int>
+            ClearCompletedAsync()
+        {
+            var removable =
+                _jobs.Values
+                    .Where(x =>
+                        x.Status == "Completed" ||
+                        x.Status == "Cancelled")
+                    .Select(x =>
+                        x.JobId)
+                    .ToList();
+
+            var removed =
+                0;
+
+            foreach (var jobId in removable)
+            {
+                if (_jobs.TryRemove(
+                    jobId,
+                    out _))
+                {
+                    removed++;
+                }
+            }
+
+            return Task.FromResult(
+                removed);
+        }
+
+        private static int NormalizeLimit(
+            int limit)
+        {
+            if (limit < 1)
+                return 10;
+
+            return Math.Min(
+                limit,
+                500);
+        }
+
+        private static decimal Percentage(
+            int value,
+            int total)
+        {
+            if (total <= 0)
+                return 0;
+
+            return Math.Round(
+                ((decimal)value / total) * 100m,
+                2);
+        }
+    }
+
+    public class PropertyMatchSalesAutomationBatchJobDto
+    {
+        public Guid JobId { get; set; }
+
+        public Guid? BatchId { get; set; }
+
+        public string Status { get; set; }
+            = "Pending";
+
+        public string Actor { get; set; }
+            = "System";
+
+        public int TotalRequested { get; set; }
+
+        public int Processed { get; set; }
+
+        public int Successful { get; set; }
+
+        public int Completed { get; set; }
+
+        public int Failed { get; set; }
+
+        public int AwaitingApproval { get; set; }
+
+        public decimal SuccessRate { get; set; }
+
+        public decimal FailureRate { get; set; }
+
+        public long DurationMilliseconds { get; set; }
+
+        public string? ErrorCode { get; set; }
+
+        public string? ErrorMessage { get; set; }
+
+        public PropertyMatchSalesAutomationBatchRuntimeResultDto?
+            Result { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+
+        public DateTime? StartedAt { get; set; }
+
+        public DateTime? CompletedAt { get; set; }
+
+        public DateTime UpdatedAt { get; set; }
+            = DateTime.UtcNow;
+    }
+
+    public class PropertyMatchSalesAutomationBatchJobSummaryDto
+    {
+        public int TotalJobs { get; set; }
+
+        public int RunningJobs { get; set; }
+
+        public int CompletedJobs { get; set; }
+
+        public int PartiallyCompletedJobs { get; set; }
+
+        public int FailedJobs { get; set; }
+
+        public int CancelledJobs { get; set; }
+
+        public int TotalProcessed { get; set; }
+
+        public int TotalSuccessful { get; set; }
+
+        public int TotalFailed { get; set; }
+
+        public decimal SuccessRate { get; set; }
+
+        public decimal FailureRate { get; set; }
+
+        public DateTime GeneratedAt { get; set; }
+    }
+}

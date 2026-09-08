@@ -1,0 +1,113 @@
+using REAL_ESTATE_CLEAN.Core.Application.DTOs.Property;
+using REAL_ESTATE_CLEAN.Core.Application.Interfaces.Services;
+
+namespace REAL_ESTATE_CLEAN.Services.Ai
+{
+    public class PropertyCustomerAutoMatchService
+    {
+        private readonly IPropertyCustomerMatchService _matchService;
+        private readonly PropertyCustomerMatchScoringService _scoringService;
+
+        public PropertyCustomerAutoMatchService(
+            IPropertyCustomerMatchService matchService,
+            PropertyCustomerMatchScoringService scoringService)
+        {
+            _matchService = matchService;
+            _scoringService = scoringService;
+        }
+
+        public async Task<PropertyCustomerMatchDto> CreateMatchAsync(
+            int propertyId,
+            int leadId,
+            PropertyMatchScoreRequest scoreRequest)
+        {
+            if (propertyId <= 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(propertyId),
+                    "PropertyId sıfırdan büyük olmalıdır.");
+
+            if (leadId <= 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(leadId),
+                    "LeadId sıfırdan büyük olmalıdır.");
+
+            ArgumentNullException.ThrowIfNull(scoreRequest);
+
+            var scoreResult = _scoringService.Calculate(scoreRequest);
+
+            var match = new PropertyCustomerMatchDto
+            {
+                PropertyId = propertyId,
+                LeadId = leadId,
+
+                MatchScore = scoreResult.Score,
+
+                PriceMatched =
+                    scoreRequest.PriceMatched,
+
+                LocationMatched =
+                    scoreRequest.LocationMatched,
+
+                PropertyTypeMatched =
+                    scoreRequest.PropertyTypeMatched,
+
+                RoomCountMatched =
+                    scoreRequest.RoomCountMatched,
+
+                SizeMatched =
+                    scoreRequest.SizeMatched,
+
+                MatchReason =
+                    scoreResult.Reason,
+
+                Status = GetStatus(scoreResult.Score),
+
+                CreatedAt = DateTime.UtcNow
+            };
+
+            return await _matchService.CreateAsync(match);
+        }
+
+        public async Task<List<PropertyCustomerMatchDto>>
+            GetLeadRecommendationsAsync(
+                int leadId,
+                int limit = 10)
+        {
+            if (leadId <= 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(leadId));
+
+            return await _matchService
+                .GetBestMatchesForLeadAsync(
+                    leadId,
+                    limit);
+        }
+
+        public async Task<List<PropertyCustomerMatchDto>>
+            GetPropertyLeadRecommendationsAsync(
+                int propertyId,
+                int limit = 10)
+        {
+            if (propertyId <= 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(propertyId));
+
+            return await _matchService
+                .GetBestLeadsForPropertyAsync(
+                    propertyId,
+                    limit);
+        }
+
+        private static string GetStatus(decimal score)
+        {
+            return score switch
+            {
+                >= 90 => "Hot",
+                >= 75 => "High",
+                >= 60 => "Medium",
+                >= 40 => "Low",
+                _ => "VeryLow"
+            };
+        }
+    }
+}

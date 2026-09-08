@@ -1,0 +1,62 @@
+@page "/lead-activity"
+
+@inject HttpClient Http
+
+<h1>Lead Activity</h1>
+
+@if (activities == null)
+{
+    <p>Yükleniyor...</p>
+}
+else
+{
+    <div class="activity-list">
+
+        @foreach (var item in activities)
+        {
+            <div class="activity-card">
+
+                <h3>@item.ActivityType</h3>
+
+                <p>
+                    @item.Title
+                </p>
+
+                <span>
+                    @item.Result
+                </span>
+
+                <small>
+                    @item.ActivityDate
+                </small>
+
+            </div>
+        }
+
+    </div>
+}
+
+
+@code {
+
+    private List<ActivityDto>? activities;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        activities = await Http.GetFromJsonAsync<List<ActivityDto>>(
+            "api/lead-activity");
+    }
+
+
+    public class ActivityDto
+    {
+        public string ActivityType { get; set; } = string.Empty;
+
+        public string Title { get; set; } = string.Empty;
+
+        public string Result { get; set; } = string.Empty;
+
+        public DateTime ActivityDate { get; set; }
+    }
+}

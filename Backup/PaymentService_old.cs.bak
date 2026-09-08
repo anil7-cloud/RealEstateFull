@@ -1,0 +1,10 @@
+namespace REAL_ESTATE_CLEAN.Core.Application;
+
+public class PaymentService
+{
+    public bool Pay(decimal amount)
+    {
+        // demo payment logic
+        return amount > 0;
+    }
+}

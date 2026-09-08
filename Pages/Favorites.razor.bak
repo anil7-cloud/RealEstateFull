@@ -1,0 +1,38 @@
+@page "/favorites"
+@inject FavoriteService FavoriteService
+
+<h3>❤️ Favorilerim</h3>
+
+@foreach (var item in favorites)
+{
+    <div>
+        <h4>@item.Title</h4>
+        <p>@item.Location</p>
+    </div>
+}
+
+@code {
+    private List<Property> favorites;
+
+    protected override void OnInitialized()
+    {
+        favorites = FavoriteService.GetUserFavorites(1);
+    }
+}
+
+@inject FavoriteService FavoriteService
+@inject AuthenticationStateProvider AuthStateProvider
+
+@code {
+    private List<Property> favorites = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var userId = int.Parse(user.FindFirst("UserId").Value);
+
+        favorites = FavoriteService.GetUserFavorites(userId);
+    }
+}

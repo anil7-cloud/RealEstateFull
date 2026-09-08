@@ -1,0 +1,345 @@
+@using REAL_ESTATE_CLEAN.Infrastructure.Auth
+@page "/properties"
+
+@using REAL_ESTATE_CLEAN.Core.Application.DTO
+@inject PropertyService PropertyService
+@inject FavoriteService FavoriteService
+@inject CurrentUserService CurrentUser
+@inject NavigationManager Nav
+
+
+<h1>🏢 İlanlar</h1>
+
+
+<div class="grid">
+
+
+@foreach(var property in properties)
+{
+
+<div class="property-card">
+
+@if (!string.IsNullOrWhiteSpace(property.CoverImageUrl))
+{
+    <a href="@($"/properties/{property.Id}")">
+        <img
+            src="@property.CoverImageUrl"
+            alt="@property.Title"
+            class="property-cover" />
+    </a>
+}
+else
+{
+    <div class="property-cover property-cover-empty">
+        🏠
+        <span>Fotoğraf yok</span>
+    </div>
+}
+
+
+<h2>
+@property.Title
+</h2>
+
+
+<p>
+📍 @property.Location
+</p>
+
+
+<p class="city">
+@property.City
+</p>
+
+
+<h3>
+💰 @property.Price.ToString("N0") ₺
+</h3>
+
+
+@if(property.IsPremium)
+{
+<span class="premium">
+⭐ Premium
+</span>
+}
+
+
+<br/>
+
+
+<button
+    @onclick='() => Nav.NavigateTo($"/properties/edit/{property.Id}")'
+    style="margin-left:8px;">
+
+    ✏️ Düzenle
+</button>
+
+@if (property.IsActive)
+{
+    <button
+        @onclick="() => TogglePropertyActive(property.Id, false)"
+        style="margin-left:8px;background:#f0ad4e;color:white;">
+
+        ⏸️ Pasife Al
+    </button>
+}
+else
+{
+    <button
+        @onclick="() => TogglePropertyActive(property.Id, true)"
+        style="margin-left:8px;background:#2e7d32;color:white;">
+
+        ▶️ Aktifleştir
+    </button>
+}
+
+<button
+    @onclick="() => DeleteProperty(property.Id)"
+    style="margin-left:8px;background:#c62828;color:white;">
+
+    🗑️ Sil
+</button>
+
+<button @onclick="() => ToggleFavorite(property.Id)">
+
+@(favoriteIds.Contains(property.Id)
+? "❤️ Favoride"
+: "🤍 Favoriye Ekle")
+
+</button>
+
+
+</div>
+
+}
+
+
+</div>
+
+
+
+@code {
+
+
+
+
+
+private List<PropertyDto> properties = new();
+
+private List<int> favoriteIds = new();
+
+
+
+protected override async Task OnInitializedAsync()
+{
+    if (!CurrentUser.IsAuthenticated)
+    {
+        Nav.NavigateTo("/login");
+        return;
+    }
+
+    var userId = CurrentUser.UserId!.Value;
+
+    properties =
+        await PropertyService.GetByUserId(userId);
+
+    favoriteIds =
+        await FavoriteService.GetUserFavoriteIds(userId);
+}
+
+
+
+
+private async Task DeleteProperty(int id)
+{
+    if (!CurrentUser.IsAuthenticated)
+    {
+        Nav.NavigateTo("/login");
+        return;
+    }
+
+    var userId = CurrentUser.UserId!.Value;
+
+    var deleted =
+        await PropertyService.DeleteByUserId(
+            id,
+            userId);
+
+    if (!deleted)
+        return;
+
+    properties =
+        await PropertyService.GetByUserId(userId);
+
+    favoriteIds.Remove(id);
+
+    StateHasChanged();
+}
+
+private async Task TogglePropertyActive(
+    int id,
+    bool isActive)
+{
+    if (!CurrentUser.IsAuthenticated)
+    {
+        Nav.NavigateTo("/login");
+        return;
+    }
+
+    var userId = CurrentUser.UserId!.Value;
+
+    var updated =
+        await PropertyService.SetActiveByUserId(
+            id,
+            userId,
+            isActive);
+
+    if (!updated)
+        return;
+
+    properties =
+        await PropertyService.GetByUserId(userId);
+
+    StateHasChanged();
+}
+
+private async Task ToggleFavorite(int id)
+{
+
+    if (!CurrentUser.IsAuthenticated)
+    {
+        Nav.NavigateTo("/login");
+        return;
+    }
+
+    var userId = CurrentUser.UserId!.Value;
+
+    await FavoriteService.ToggleFavorite(
+        userId,
+        id);
+
+
+    if(favoriteIds.Contains(id))
+    {
+        favoriteIds.Remove(id);
+    }
+    else
+    {
+        favoriteIds.Add(id);
+    }
+
+}
+
+}
+
+
+
+<style>
+
+
+.grid{
+
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:25px;
+
+}
+
+
+
+.property-card{
+
+background:white;
+padding:25px;
+border-radius:18px;
+box-shadow:0 5px 20px #ddd;
+
+}
+
+
+
+.property-card h2{
+
+font-size:22px;
+
+}
+
+
+
+.city{
+
+color:#777;
+
+}
+
+
+
+.premium{
+
+background:#ffd700;
+padding:5px 10px;
+border-radius:10px;
+
+}
+
+
+
+button{
+
+margin-top:15px;
+padding:10px 15px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+
+}
+
+
+
+
+.property-cover{
+
+width:100%;
+
+height:220px;
+
+object-fit:cover;
+
+border-radius:14px;
+
+margin-bottom:15px;
+
+display:block;
+
+}
+
+.property-cover-empty{
+
+background:#f2f2f2;
+
+display:flex;
+
+flex-direction:column;
+
+align-items:center;
+
+justify-content:center;
+
+font-size:42px;
+
+color:#777;
+
+}
+
+.property-cover-empty span{
+
+font-size:14px;
+
+margin-top:8px;
+
+}
+
+
+</style>
+

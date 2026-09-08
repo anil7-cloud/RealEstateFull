@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>360° Emlak Turu</title>
+
+    <link
+        rel="stylesheet"
+        href="/virtual-tour/viewer.css">
+</head>
+
+<body>
+
+<div id="viewer">
+
+    <canvas id="panoramaCanvas"></canvas>
+
+    <div id="loading">
+        360° tur yükleniyor...
+    </div>
+
+    <div id="topBar">
+        <div>
+            <div id="tourTitle"></div>
+            <div id="sceneTitle"></div>
+        </div>
+
+        <button
+            id="fullscreenButton"
+            type="button">
+            Tam Ekran
+        </button>
+    </div>
+
+    <div id="hotspotLayer"></div>
+
+    <div id="controls">
+
+        <button
+            id="zoomIn"
+            type="button">
+            +
+        </button>
+
+        <button
+            id="zoomOut"
+            type="button">
+            −
+        </button>
+
+        <button
+            id="resetView"
+            type="button">
+            ⟳
+        </button>
+
+    </div>
+
+    <div id="sceneList"></div>
+
+</div>
+
+<script
+    type="module"
+    src="/virtual-tour/viewer.js">
+</script>
+
+</body>
+</html>

@@ -1,0 +1,185 @@
+is_global = true
+build_property.TargetFramework = net8.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = REAL_ESTATE_CLEAN
+build_property.RootNamespace = REAL_ESTATE_CLEAN
+build_property.ProjectDir = /Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 8.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = /Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
+build_property.EnableCodeStyleSeverity = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/App.razor]
+build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/AddProperty.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQWRkUHJvcGVydHkucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Admin.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQWRtaW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/AdminDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQWRtaW5EYXNoYm9hcmQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/AIRanking.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQUlSYW5raW5nLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Chat.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQ2hhdC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Components/PropertyCard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQ29tcG9uZW50cy9Qcm9wZXJ0eUNhcmQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Customers.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQ3VzdG9tZXJzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Dashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvRGFzaGJvYXJkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/EditProperty.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvRWRpdFByb3BlcnR5LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Favorites.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvRmF2b3JpdGVzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/LeadEmail.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTGVhZEVtYWlsLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Listings.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTGlzdGluZ3MucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTG9naW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Notifications.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTm90aWZpY2F0aW9ucy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/PaymentDetail.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUGF5bWVudERldGFpbC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/PaymentHistory.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUGF5bWVudEhpc3RvcnkucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Payments.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUGF5bWVudHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Profile.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUHJvZmlsZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Properties.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUHJvcGVydGllcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/PropertyAlerts.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUHJvcGVydHlBbGVydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/PropertyDetail.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUHJvcGVydHlEZXRhaWwucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/PropertyStatistics.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUHJvcGVydHlTdGF0aXN0aWNzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Register.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUmVnaXN0ZXIucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/Search.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvU2VhcmNoLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/SellerDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvU2VsbGVyRGFzaGJvYXJkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/UploadImage.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvVXBsb2FkSW1hZ2UucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvX0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Shared/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL01haW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Shared/NavMenu.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL05hdk1lbnUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/LeadActivity.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTGVhZEFjdGl2aXR5LnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-4aiwuzdnnn
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/LeadCall.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTGVhZENhbGwucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-fgh7upu8rd
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/LeadDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTGVhZERhc2hib2FyZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-915pi3fvn9
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/LeadMeeting.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTGVhZE1lZXRpbmcucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-krejrz84lt
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/LeadPipeline.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTGVhZFBpcGVsaW5lLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-gok831rspq
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/LeadSms.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTGVhZFNtcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-2snczp81ur
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/LeadTask.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTGVhZFRhc2sucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-oqn7q796iz
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/_Host.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvX0hvc3QuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/test/Desktop/RealEstateApp/REAL_ESTATE_CLEAN/Pages/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvX1ZpZXdJbXBvcnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 

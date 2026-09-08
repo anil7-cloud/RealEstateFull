@@ -1,0 +1,290 @@
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using REAL_ESTATE_CLEAN.Core.Domain.Entities;
+using REAL_ESTATE_CLEAN.Core.Persistence;
+
+namespace REAL_ESTATE_CLEAN.Services.Ai
+{
+    public class PropertyCustomerMatchSalesAutomationOperationsReliabilityAnomalyHistoryRepository
+    {
+        private readonly AppDbContext _dbContext;
+
+        public PropertyCustomerMatchSalesAutomationOperationsReliabilityAnomalyHistoryRepository(
+            AppDbContext dbContext)
+        {
+            _dbContext =
+                dbContext;
+        }
+
+        public async Task<
+            PropertyMatchSalesAutomationOperationsReliabilityAnomalyHistory?>
+            AddIfNeededAsync(
+                PropertyMatchSalesAutomationOperationsReliabilityAnomalyDto anomaly,
+                CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(anomaly);
+
+            /*
+             * Normal durumları history tablosuna yazmıyoruz.
+             */
+            if (!anomaly.HasAnomaly ||
+                string.Equals(
+                    anomaly.Severity,
+                    "None",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var latestActive =
+                await _dbContext
+                    .PropertyMatchSalesAutomationOperationsReliabilityAnomalyHistories
+                    .Where(x =>
+                        x.Status == "Active")
+                    .OrderByDescending(x =>
+                        x.DetectedAt)
+                    .FirstOrDefaultAsync(
+                        cancellationToken);
+
+            /*
+             * Aynı reliability snapshot'ından üretilen anomaly
+             * ikinci kez kaydedilmez.
+             */
+            if (latestActive != null &&
+                latestActive.CurrentSnapshotAt ==
+                    anomaly.CurrentSnapshotAt)
+            {
+                return null;
+            }
+
+            /*
+             * Aynı severity + aynı ana neden + hemen hemen aynı
+             * score drop için kısa sürede duplicate üretme.
+             */
+            if (latestActive != null)
+            {
+                var sameSeverity =
+                    string.Equals(
+                        latestActive.Severity,
+                        anomaly.Severity,
+                        StringComparison.OrdinalIgnoreCase);
+
+                var sameReason =
+                    string.Equals(
+                        latestActive.Reason,
+                        anomaly.Reason,
+                        StringComparison.OrdinalIgnoreCase);
+
+                var similarDrop =
+                    Math.Abs(
+                        latestActive.ScoreDrop -
+                        anomaly.ScoreDrop) < 1m;
+
+                var recent =
+                    DateTime.UtcNow -
+                    latestActive.DetectedAt <
+                    TimeSpan.FromMinutes(30);
+
+                if (sameSeverity &&
+                    sameReason &&
+                    similarDrop &&
+                    recent)
+                {
+                    return null;
+                }
+            }
+
+            var entity =
+                new PropertyMatchSalesAutomationOperationsReliabilityAnomalyHistory
+                {
+                    Id =
+                        Guid.NewGuid(),
+
+                    Severity =
+                        anomaly.Severity,
+
+                    PreviousScore =
+                        anomaly.PreviousScore,
+
+                    CurrentScore =
+                        anomaly.CurrentScore,
+
+                    ScoreChange =
+                        anomaly.ScoreChange,
+
+                    ScoreDrop =
+                        anomaly.ScoreDrop,
+
+                    Reason =
+                        anomaly.Reason,
+
+                    ReasonsJson =
+                        JsonSerializer.Serialize(
+                            anomaly.Reasons),
+
+                    PreviousSnapshotAt =
+                        anomaly.PreviousSnapshotAt,
+
+                    CurrentSnapshotAt =
+                        anomaly.CurrentSnapshotAt,
+
+                    Status =
+                        "Active",
+
+                    DetectedAt =
+                        DateTime.UtcNow
+                };
+
+            await _dbContext
+                .PropertyMatchSalesAutomationOperationsReliabilityAnomalyHistories
+                .AddAsync(
+                    entity,
+                    cancellationToken);
+
+            await _dbContext
+                .SaveChangesAsync(
+                    cancellationToken);
+
+            return entity;
+        }
+
+        public async Task<List<
+            PropertyMatchSalesAutomationOperationsReliabilityAnomalyHistory>>
+            GetRecentAsync(
+                int limit = 100,
+                CancellationToken cancellationToken = default)
+        {
+            limit =
+                Math.Clamp(
+                    limit,
+                    1,
+                    5000);
+
+            return await _dbContext
+                .PropertyMatchSalesAutomationOperationsReliabilityAnomalyHistories
+                .AsNoTracking()
+                .OrderByDescending(x =>
+                    x.DetectedAt)
+                .Take(limit)
+                .ToListAsync(
+                    cancellationToken);
+        }
+
+        public async Task<List<
+            PropertyMatchSalesAutomationOperationsReliabilityAnomalyHistory>>
+            GetSinceAsync(
+                DateTime since,
+                int limit = 5000,
+                CancellationToken cancellationToken = default)
+        {
+            limit =
+                Math.Clamp(
+                    limit,
+                    1,
+                    10000);
+
+            return await _dbContext
+                .PropertyMatchSalesAutomationOperationsReliabilityAnomalyHistories
+                .AsNoTracking()
+                .Where(x =>
+                    x.DetectedAt >= since)
+                .OrderByDescending(x =>
+                    x.DetectedAt)
+                .Take(limit)
+                .ToListAsync(
+                    cancellationToken);
+        }
+
+        public async Task<List<
+            PropertyMatchSalesAutomationOperationsReliabilityAnomalyHistory>>
+            GetActiveAsync(
+                int limit = 100,
+                CancellationToken cancellationToken = default)
+        {
+            limit =
+                Math.Clamp(
+                    limit,
+                    1,
+                    1000);
+
+            return await _dbContext
+                .PropertyMatchSalesAutomationOperationsReliabilityAnomalyHistories
+                .AsNoTracking()
+                .Where(x =>
+                    x.Status == "Active")
+                .OrderByDescending(x =>
+                    x.DetectedAt)
+                .Take(limit)
+                .ToListAsync(
+                    cancellationToken);
+        }
+
+        public async Task<int>
+            ResolveAllActiveAsync(
+                CancellationToken cancellationToken = default)
+        {
+            var active =
+                await _dbContext
+                    .PropertyMatchSalesAutomationOperationsReliabilityAnomalyHistories
+                    .Where(x =>
+                        x.Status == "Active")
+                    .ToListAsync(
+                        cancellationToken);
+
+            if (active.Count == 0)
+            {
+                return 0;
+            }
+
+            var resolvedAt =
+                DateTime.UtcNow;
+
+            foreach (var anomaly in active)
+            {
+                anomaly.Status =
+                    "Resolved";
+
+                anomaly.ResolvedAt =
+                    resolvedAt;
+            }
+
+            await _dbContext
+                .SaveChangesAsync(
+                    cancellationToken);
+
+            return active.Count;
+        }
+
+        public async Task<bool>
+            ResolveAsync(
+                Guid id,
+                CancellationToken cancellationToken = default)
+        {
+            var anomaly =
+                await _dbContext
+                    .PropertyMatchSalesAutomationOperationsReliabilityAnomalyHistories
+                    .FirstOrDefaultAsync(
+                        x =>
+                            x.Id == id &&
+                            x.Status == "Active",
+                        cancellationToken);
+
+            if (anomaly == null)
+            {
+                return false;
+            }
+
+            anomaly.Status =
+                "Resolved";
+
+            anomaly.ResolvedAt =
+                DateTime.UtcNow;
+
+            await _dbContext
+                .SaveChangesAsync(
+                    cancellationToken);
+
+            return true;
+        }
+    }
+}

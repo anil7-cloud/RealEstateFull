@@ -1,0 +1,765 @@
+const parameters =
+    new URLSearchParams(
+        window.location.search);
+
+const propertyId =
+    parameters.get(
+        "propertyId");
+
+
+const propertyTitle =
+    document.getElementById(
+        "propertyTitle");
+
+const mediaStatus =
+    document.getElementById(
+        "mediaStatus");
+
+const mainPhoto =
+    document.getElementById(
+        "mainPhoto");
+
+const photoEmpty =
+    document.getElementById(
+        "photoEmpty");
+
+const photoThumbnails =
+    document.getElementById(
+        "photoThumbnails");
+
+const previousPhoto =
+    document.getElementById(
+        "previousPhoto");
+
+const nextPhoto =
+    document.getElementById(
+        "nextPhoto");
+
+const tour360Frame =
+    document.getElementById(
+        "tour360Frame");
+
+const tour360Empty =
+    document.getElementById(
+        "tour360Empty");
+
+const model3dFrame =
+    document.getElementById(
+        "model3dFrame");
+
+const model3dEmpty =
+    document.getElementById(
+        "model3dEmpty");
+
+
+let tours = [];
+
+let photos = [];
+
+let currentPhotoIndex = 0;
+
+let panoramaTour = null;
+
+let modelTour = null;
+
+
+function setMode(
+    mode)
+{
+    document
+        .querySelectorAll(
+            ".tab")
+        .forEach(
+            button =>
+            {
+                button.classList.toggle(
+                    "active",
+                    button.dataset.mode ===
+                        mode);
+            });
+
+    document
+        .querySelectorAll(
+            ".media-panel")
+        .forEach(
+            panel =>
+            {
+                panel.classList.remove(
+                    "active");
+            });
+
+    if (mode === "photos")
+    {
+        document
+            .getElementById(
+                "photosPanel")
+            .classList.add(
+                "active");
+    }
+
+    if (mode === "tour360")
+    {
+        document
+            .getElementById(
+                "tour360Panel")
+            .classList.add(
+                "active");
+
+        load360Frame();
+    }
+
+    if (mode === "model3d")
+    {
+        document
+            .getElementById(
+                "model3dPanel")
+            .classList.add(
+                "active");
+
+        load3DFrame();
+    }
+}
+
+
+function load360Frame()
+{
+    if (!panoramaTour)
+    {
+        tour360Frame.style.display =
+            "none";
+
+        tour360Empty.style.display =
+            "block";
+
+        return;
+    }
+
+    tour360Empty.style.display =
+        "none";
+
+    tour360Frame.style.display =
+        "block";
+
+    if (!tour360Frame.src)
+    {
+        tour360Frame.src =
+            `/virtual-tour/viewer.html?tourId=${encodeURIComponent(
+                panoramaTour.id)}`;
+    }
+}
+
+
+function load3DFrame()
+{
+    if (!modelTour)
+    {
+        model3dFrame.style.display =
+            "none";
+
+        model3dEmpty.style.display =
+            "block";
+
+        return;
+    }
+
+    model3dEmpty.style.display =
+        "none";
+
+    model3dFrame.style.display =
+        "block";
+
+    if (!model3dFrame.src)
+    {
+        model3dFrame.src =
+            `/virtual-tour/model-viewer.html?tourId=${encodeURIComponent(
+                modelTour.id)}`;
+    }
+}
+
+
+function showPhoto(
+    index)
+{
+    if (photos.length === 0)
+    {
+        mainPhoto.style.display =
+            "none";
+
+        photoEmpty.style.display =
+            "block";
+
+        previousPhoto.style.display =
+            "none";
+
+        nextPhoto.style.display =
+            "none";
+
+        return;
+    }
+
+    currentPhotoIndex =
+        (
+            index +
+            photos.length
+        ) %
+        photos.length;
+
+    const photo =
+        photos[
+            currentPhotoIndex
+        ];
+
+    mainPhoto.src =
+        typeof photo === "string"
+            ? photo
+            : (
+                photo.url ||
+                photo.imageUrl ||
+                photo.photoUrl
+            );
+
+    mainPhoto.style.display =
+        "block";
+
+    photoEmpty.style.display =
+        "none";
+
+    previousPhoto.style.display =
+        photos.length > 1
+            ? "block"
+            : "none";
+
+    nextPhoto.style.display =
+        photos.length > 1
+            ? "block"
+            : "none";
+
+    document
+        .querySelectorAll(
+            ".thumbnail")
+        .forEach(
+            (thumbnail, i) =>
+            {
+                thumbnail.classList.toggle(
+                    "active",
+                    i ===
+                        currentPhotoIndex);
+            });
+}
+
+
+function createPhotoThumbnails()
+{
+    photoThumbnails.innerHTML =
+        "";
+
+    photos.forEach(
+        (photo, index) =>
+        {
+            const url =
+                typeof photo === "string"
+                    ? photo
+                    : (
+                        photo.url ||
+                        photo.imageUrl ||
+                        photo.photoUrl
+                    );
+
+            if (!url)
+                return;
+
+            const image =
+                document.createElement(
+                    "img");
+
+            image.src =
+                url;
+
+            image.className =
+                "thumbnail";
+
+            image.alt =
+                `İlan fotoğrafı ${index + 1}`;
+
+            image.addEventListener(
+                "click",
+                () =>
+                    showPhoto(
+                        index));
+
+            photoThumbnails
+                .appendChild(
+                    image);
+        });
+}
+
+
+function detectTourTypes()
+{
+    panoramaTour =
+        tours.find(
+            tour =>
+                tour.tourType
+                    ?.toLowerCase() ===
+                    "panorama360" ||
+                tour.tourType
+                    ?.toLowerCase() ===
+                    "virtualtour");
+
+    modelTour =
+        tours.find(
+            tour =>
+                tour.tourType
+                    ?.toLowerCase() ===
+                    "model3d" ||
+                (
+                    tour.models &&
+                    tour.models.length > 0
+                ));
+
+
+    const tourButton =
+        document.querySelector(
+            '[data-mode="tour360"]');
+
+    const modelButton =
+        document.querySelector(
+            '[data-mode="model3d"]');
+
+    tourButton.disabled =
+        !panoramaTour;
+
+    modelButton.disabled =
+        !modelTour;
+}
+
+
+async function loadTours()
+{
+    const apiUrl =
+        `/api/properties/${propertyId}/virtual-tours`;
+
+    console.log("GET:", apiUrl);
+
+    const response =
+        await fetch(
+            apiUrl,
+            {
+                cache: "no-store",
+                headers: {
+                    "Accept": "application/json"
+                }
+            });
+
+    const contentType =
+        response.headers.get("content-type") || "";
+
+    console.log(
+        "STATUS:",
+        response.status,
+        "CONTENT-TYPE:",
+        contentType
+    );
+
+    const body =
+        await response.text();
+
+    console.log(
+        "BODY:",
+        body.substring(0, 500)
+    );
+
+    if (!response.ok)
+    {
+        throw new Error(
+            `API HTTP ${response.status}: ${body.substring(0, 120)}`
+        );
+    }
+
+    if (!contentType.includes("application/json"))
+    {
+        throw new Error(
+            `JSON bekleniyordu fakat ${contentType || "Content-Type yok"} geldi.`
+        );
+    }
+
+    try
+    {
+        tours =
+            body.trim()
+                ? JSON.parse(body)
+                : [];
+    }
+    catch (error)
+    {
+        throw new Error(
+            `JSON okunamadı: ${error.message}`
+        );
+    }
+
+    if (!Array.isArray(tours))
+    {
+        throw new Error(
+            "Virtual tour API bir JSON array döndürmedi."
+        );
+    }
+
+    detectTourTypes();
+}
+
+
+async function loadProperty()
+{
+    /*
+     * Projedeki mevcut Property endpoint'inden
+     * ilan fotoğraflarını almaya çalışıyoruz.
+     *
+     * Endpoint yapın farklıysa yalnızca buradaki
+     * URL/property alanını değiştirmek yeterli.
+     */
+
+    try
+    {
+        const response =
+            await fetch(
+                `/api/properties/${propertyId}`,
+                {
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                });
+
+        if (!response.ok)
+        {
+            console.warn(
+                "Property API HTTP:",
+                response.status);
+
+            return;
+        }
+
+        const contentType =
+            response.headers.get(
+                "content-type") || "";
+
+        if (!contentType.includes(
+                "application/json"))
+        {
+            const body =
+                await response.text();
+
+            console.error(
+                "Property endpoint JSON yerine başka içerik döndürdü:",
+                body.substring(0, 200));
+
+            return;
+        }
+
+        const property =
+            await response.json();
+
+        propertyTitle.textContent =
+            property.title ||
+            property.name ||
+            "İlan Görüntüleme";
+
+        photos =
+            property.photos ||
+            property.images ||
+            property.imageUrls ||
+            [];
+
+        createPhotoThumbnails();
+
+        showPhoto(0);
+    }
+    catch
+    {
+        photos = [];
+
+        showPhoto(0);
+    }
+}
+
+
+document
+    .querySelectorAll(
+        ".tab")
+    .forEach(
+        button =>
+        {
+            button.addEventListener(
+                "click",
+                () =>
+                {
+                    if (
+                        button.disabled
+                    )
+                        return;
+
+                    setMode(
+                        button.dataset.mode);
+                });
+        });
+
+
+previousPhoto
+    .addEventListener(
+        "click",
+        () =>
+            showPhoto(
+                currentPhotoIndex - 1));
+
+
+nextPhoto
+    .addEventListener(
+        "click",
+        () =>
+            showPhoto(
+                currentPhotoIndex + 1));
+
+
+document
+    .getElementById(
+        "fullscreenButton")
+    .addEventListener(
+        "click",
+        async () =>
+        {
+            const root =
+                document.getElementById(
+                    "propertyMedia");
+
+            if (
+                !document.fullscreenElement
+            )
+            {
+                await root
+                    .requestFullscreen();
+            }
+            else
+            {
+                await document
+                    .exitFullscreen();
+            }
+        });
+
+
+async function uploadPanorama()
+{
+    const fileInput =
+        document.getElementById(
+            "panoramaFile");
+
+    const titleInput =
+        document.getElementById(
+            "panoramaTitle");
+
+    const sceneInput =
+        document.getElementById(
+            "panoramaSceneName");
+
+    const button =
+        document.getElementById(
+            "uploadPanoramaButton");
+
+    const status =
+        document.getElementById(
+            "panoramaUploadStatus");
+
+    const file =
+        fileInput.files[0];
+
+    if (!file)
+    {
+        status.textContent =
+            "Önce bir panorama fotoğrafı seçin.";
+        return;
+    }
+
+    const formData =
+        new FormData();
+
+    formData.append(
+        "file",
+        file);
+
+    formData.append(
+        "title",
+        titleInput.value ||
+        "360 Daire Turu");
+
+    formData.append(
+        "sceneName",
+        sceneInput.value ||
+        "Salon");
+
+    button.disabled = true;
+
+    status.textContent =
+        "360° panorama yükleniyor...";
+
+    try
+    {
+        const response =
+            await fetch(
+                `/api/properties/${propertyId}/virtual-tours/panorama`,
+                {
+                    method: "POST",
+                    body: formData
+                });
+
+        const contentType =
+            response.headers.get(
+                "content-type") || "";
+
+        const body =
+            await response.text();
+
+        if (!response.ok)
+        {
+            throw new Error(
+                `Yükleme başarısız: HTTP ${response.status} ${body}`
+            );
+        }
+
+        if (!contentType.includes(
+                "application/json"))
+        {
+            throw new Error(
+                "Sunucu JSON cevabı döndürmedi."
+            );
+        }
+
+        const result =
+            JSON.parse(body);
+
+        status.textContent =
+            "✓ 360° tur başarıyla oluşturuldu.";
+
+        console.log(
+            "Panorama upload:",
+            result);
+
+        /*
+         * Yeni turu API'den tekrar al.
+         */
+        await loadTours();
+
+        mediaStatus.textContent =
+            `${tours.length} sanal tur bulundu.`;
+
+        /*
+         * Yeni oluşturulan turu seç.
+         */
+        panoramaTour =
+            tours.find(
+                x =>
+                    String(x.id)
+                        .toLowerCase() ===
+                    String(result.tourId)
+                        .toLowerCase()
+            ) ||
+            panoramaTour;
+
+        /*
+         * Viewer'ı doğrudan aç.
+         */
+        if (panoramaTour)
+        {
+            const frame =
+                document.getElementById(
+                    "tour360Frame");
+
+            frame.src =
+                `/virtual-tour/viewer.html?tourId=${panoramaTour.id}&v=${Date.now()}`;
+
+            document.getElementById(
+                "tour360Empty"
+            ).style.display =
+                "none";
+
+            frame.style.display =
+                "block";
+
+            setMode(
+                "tour360");
+        }
+
+        fileInput.value = "";
+    }
+    catch (error)
+    {
+        console.error(error);
+
+        status.textContent =
+            error.message;
+    }
+    finally
+    {
+        button.disabled = false;
+    }
+}
+
+
+function initializePanoramaUpload()
+{
+    const button =
+        document.getElementById(
+            "uploadPanoramaButton");
+
+    if (!button)
+        return;
+
+    button.addEventListener(
+        "click",
+        uploadPanorama);
+}
+
+
+
+async function initialize()
+{
+    console.log("PROPERTY MEDIA DEBUG");
+    console.log("Current URL:", window.location.href);
+    console.log("propertyId:", propertyId);
+    console.log(
+        "Virtual Tour API:",
+        `/api/properties/${propertyId}/virtual-tours`
+    );
+
+    initializePanoramaUpload();
+
+    if (!propertyId)
+    {
+        mediaStatus.textContent =
+            "propertyId belirtilmedi.";
+
+        return;
+    }
+
+    try
+    {
+        await Promise.all([
+            loadTours(),
+            loadProperty()
+        ]);
+
+        mediaStatus.textContent =
+            `${tours.length} sanal tur bulundu.`;
+
+        setMode(
+            "photos");
+    }
+    catch (error)
+    {
+        console.error(
+            error);
+
+        mediaStatus.textContent =
+            error.message;
+    }
+}
+
+
+initialize();

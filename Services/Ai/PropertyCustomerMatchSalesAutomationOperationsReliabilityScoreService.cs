@@ -1,0 +1,364 @@
+namespace REAL_ESTATE_CLEAN.Services.Ai
+{
+    public class PropertyCustomerMatchSalesAutomationOperationsReliabilityScoreService
+    {
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryIncidentAnalyticsService
+                _incidentAnalyticsService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryIncidentSlaService
+                _slaService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryIncidentEscalationService
+                _escalationService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryRiskScoreService
+                _riskService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityHistoryRepository
+                _historyRepository;
+
+        public PropertyCustomerMatchSalesAutomationOperationsReliabilityScoreService(
+            PropertyCustomerMatchSalesAutomationRetryIncidentAnalyticsService incidentAnalyticsService,
+            PropertyCustomerMatchSalesAutomationRetryIncidentSlaService slaService,
+            PropertyCustomerMatchSalesAutomationRetryIncidentEscalationService escalationService,
+            PropertyCustomerMatchSalesAutomationRetryRiskScoreService riskService,
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityHistoryRepository historyRepository)
+        {
+            _incidentAnalyticsService =
+                incidentAnalyticsService;
+
+            _slaService =
+                slaService;
+
+            _escalationService =
+                escalationService;
+
+            _riskService =
+                riskService;
+
+            _historyRepository =
+                historyRepository;
+        }
+
+        public async Task<
+            PropertyMatchSalesAutomationOperationsReliabilityScoreDto>
+            GetScoreAsync(
+                CancellationToken cancellationToken = default)
+        {
+            var analytics =
+                await _incidentAnalyticsService
+                    .GetAnalyticsAsync(
+                        cancellationToken);
+
+            var slaBreaches =
+                await _slaService
+                    .GetBreachedAsync(
+                        100,
+                        cancellationToken);
+
+            var escalations =
+                await _escalationService
+                    .GetEscalationsAsync(
+                        100,
+                        cancellationToken);
+
+            var risk =
+                await _riskService
+                    .GetRiskScoreAsync(
+                        cancellationToken);
+
+            decimal penalty = 0m;
+
+            var factors =
+                new List<
+                    PropertyMatchSalesAutomationReliabilityFactorDto>();
+
+            var window =
+                analytics.Last7Days;
+
+            AddPenalty(
+                factors,
+                "OperationalRisk",
+                risk.RiskScore * 0.30m,
+                ref penalty);
+
+            AddPenalty(
+                factors,
+                "OpenIncidents",
+                Math.Min(
+                    15m,
+                    window.OpenIncidents * 3m),
+                ref penalty);
+
+            AddPenalty(
+                factors,
+                "CriticalIncidents",
+                Math.Min(
+                    15m,
+                    window.CriticalIncidents * 5m),
+                ref penalty);
+
+            AddPenalty(
+                factors,
+                "SlaBreaches",
+                Math.Min(
+                    15m,
+                    slaBreaches.Count * 3m),
+                ref penalty);
+
+            var level2 =
+                escalations.Count(x =>
+                    x.LevelNumber == 2);
+
+            var level3 =
+                escalations.Count(x =>
+                    x.LevelNumber == 3);
+
+            AddPenalty(
+                factors,
+                "Level2Escalations",
+                Math.Min(
+                    8m,
+                    level2 * 2m),
+                ref penalty);
+
+            AddPenalty(
+                factors,
+                "Level3Escalations",
+                Math.Min(
+                    15m,
+                    level3 * 5m),
+                ref penalty);
+
+            if (window.MttrMinutes > 120m)
+            {
+                var mttrPenalty =
+                    Math.Min(
+                        10m,
+                        window.MttrMinutes / 60m);
+
+                AddPenalty(
+                    factors,
+                    "HighMTTR",
+                    mttrPenalty,
+                    ref penalty);
+            }
+
+            /*
+             * Yüksek resolution rate küçük bir pozitif düzeltme
+             * sağlar. Toplam skor yine 0-100 arasında tutulur.
+             */
+            decimal bonus = 0m;
+
+            if (window.TotalIncidents > 0 &&
+                window.ResolutionRate >= 90m)
+            {
+                bonus =
+                    3m;
+            }
+
+            var score =
+                100m -
+                penalty +
+                bonus;
+
+            score =
+                Math.Clamp(
+                    Math.Round(
+                        score,
+                        2),
+                    0m,
+                    100m);
+
+            var result =
+                new PropertyMatchSalesAutomationOperationsReliabilityScoreDto
+            {
+                Score =
+                    score,
+
+                Grade =
+                    GetGrade(
+                        score),
+
+                Status =
+                    GetStatus(
+                        score),
+
+                TotalPenalty =
+                    Math.Round(
+                        penalty,
+                        2),
+
+                Bonus =
+                    bonus,
+
+                RiskScore =
+                    risk.RiskScore,
+
+                OpenIncidents =
+                    window.OpenIncidents,
+
+                CriticalIncidents =
+                    window.CriticalIncidents,
+
+                SlaBreaches =
+                    slaBreaches.Count,
+
+                Level2Escalations =
+                    level2,
+
+                Level3Escalations =
+                    level3,
+
+                MttrMinutes =
+                    window.MttrMinutes,
+
+                ResolutionRate =
+                    window.ResolutionRate,
+
+                Factors =
+                    factors
+                        .Where(x =>
+                            x.Penalty > 0)
+                        .OrderByDescending(x =>
+                            x.Penalty)
+                        .ToList(),
+
+                GeneratedAt =
+                    DateTime.UtcNow
+            };
+
+            await _historyRepository
+                .AddSnapshotIfNeededAsync(
+                    result,
+                    TimeSpan.FromMinutes(15),
+                    1m,
+                    cancellationToken);
+
+            return result;
+        }
+
+        private static void AddPenalty(
+            List<PropertyMatchSalesAutomationReliabilityFactorDto> factors,
+            string code,
+            decimal value,
+            ref decimal total)
+        {
+            value =
+                Math.Max(
+                    0m,
+                    Math.Round(
+                        value,
+                        2));
+
+            if (value <= 0m)
+            {
+                return;
+            }
+
+            total +=
+                value;
+
+            factors.Add(
+                new()
+                {
+                    Code =
+                        code,
+
+                    Penalty =
+                        value
+                });
+        }
+
+        private static string GetGrade(
+            decimal score)
+        {
+            if (score >= 95m)
+                return "A+";
+
+            if (score >= 90m)
+                return "A";
+
+            if (score >= 80m)
+                return "B";
+
+            if (score >= 70m)
+                return "C";
+
+            if (score >= 60m)
+                return "D";
+
+            return "F";
+        }
+
+        private static string GetStatus(
+            decimal score)
+        {
+            if (score >= 90m)
+                return "Excellent";
+
+            if (score >= 80m)
+                return "Healthy";
+
+            if (score >= 70m)
+                return "Degraded";
+
+            if (score >= 50m)
+                return "Unhealthy";
+
+            return "Critical";
+        }
+    }
+
+    public class
+        PropertyMatchSalesAutomationOperationsReliabilityScoreDto
+    {
+        public decimal Score { get; set; }
+
+        public string Grade { get; set; }
+            = string.Empty;
+
+        public string Status { get; set; }
+            = string.Empty;
+
+        public decimal TotalPenalty { get; set; }
+
+        public decimal Bonus { get; set; }
+
+        public decimal RiskScore { get; set; }
+
+        public int OpenIncidents { get; set; }
+
+        public int CriticalIncidents { get; set; }
+
+        public int SlaBreaches { get; set; }
+
+        public int Level2Escalations { get; set; }
+
+        public int Level3Escalations { get; set; }
+
+        public decimal MttrMinutes { get; set; }
+
+        public decimal ResolutionRate { get; set; }
+
+        public List<
+            PropertyMatchSalesAutomationReliabilityFactorDto>
+            Factors { get; set; } = new();
+
+        public DateTime GeneratedAt { get; set; }
+    }
+
+    public class
+        PropertyMatchSalesAutomationReliabilityFactorDto
+    {
+        public string Code { get; set; }
+            = string.Empty;
+
+        public decimal Penalty { get; set; }
+    }
+}

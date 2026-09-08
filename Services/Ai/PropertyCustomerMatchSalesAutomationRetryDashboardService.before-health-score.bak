@@ -1,0 +1,437 @@
+namespace REAL_ESTATE_CLEAN.Services.Ai
+{
+    public class PropertyCustomerMatchSalesAutomationRetryDashboardService
+    {
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryHealthService
+                _healthService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryMetricsService
+                _metricsService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryEventRepository
+                _eventRepository;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryAlertService
+                _alertService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryAlertAnalyticsService
+                _alertAnalyticsService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryRiskScoreService
+                _riskScoreService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryIncidentAnalyticsService
+                _incidentAnalyticsService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryIncidentSlaService
+                _incidentSlaService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryIncidentEscalationService
+                _incidentEscalationService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryIncidentEscalationAnalyticsService
+                _incidentEscalationAnalyticsService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityScoreService
+                _operationsReliabilityScoreService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityTrendService
+                _operationsReliabilityTrendService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityAnomalyService
+                _operationsReliabilityAnomalyService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityAlertService
+                _operationsReliabilityAlertService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityEscalationSummaryService
+                _operationsReliabilityEscalationSummaryService;
+
+        public PropertyCustomerMatchSalesAutomationRetryDashboardService(
+            PropertyCustomerMatchSalesAutomationRetryHealthService healthService,
+            PropertyCustomerMatchSalesAutomationRetryMetricsService metricsService,
+            PropertyCustomerMatchSalesAutomationRetryEventRepository eventRepository,
+            PropertyCustomerMatchSalesAutomationRetryAlertService alertService,
+            PropertyCustomerMatchSalesAutomationRetryAlertAnalyticsService alertAnalyticsService,
+            PropertyCustomerMatchSalesAutomationRetryRiskScoreService riskScoreService,
+            PropertyCustomerMatchSalesAutomationRetryIncidentAnalyticsService incidentAnalyticsService,
+            PropertyCustomerMatchSalesAutomationRetryIncidentSlaService incidentSlaService,
+            PropertyCustomerMatchSalesAutomationRetryIncidentEscalationService incidentEscalationService,
+            PropertyCustomerMatchSalesAutomationRetryIncidentEscalationAnalyticsService incidentEscalationAnalyticsService,
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityScoreService operationsReliabilityScoreService,
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityTrendService operationsReliabilityTrendService,
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityAnomalyService operationsReliabilityAnomalyService,
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityAlertService operationsReliabilityAlertService,
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityEscalationSummaryService operationsReliabilityEscalationSummaryService)
+        {
+            _healthService = healthService;
+            _metricsService = metricsService;
+            _eventRepository = eventRepository;
+            _alertService = alertService;
+            _alertAnalyticsService = alertAnalyticsService;
+            _riskScoreService = riskScoreService;
+            _incidentAnalyticsService = incidentAnalyticsService;
+            _incidentSlaService = incidentSlaService;
+            _incidentEscalationService = incidentEscalationService;
+            _incidentEscalationAnalyticsService =
+                incidentEscalationAnalyticsService;
+
+            _operationsReliabilityScoreService =
+                operationsReliabilityScoreService;
+
+            _operationsReliabilityTrendService =
+                operationsReliabilityTrendService;
+
+            _operationsReliabilityAnomalyService =
+                operationsReliabilityAnomalyService;
+
+            _operationsReliabilityAlertService =
+                operationsReliabilityAlertService;
+
+            _operationsReliabilityEscalationSummaryService =
+                operationsReliabilityEscalationSummaryService;
+        }
+
+        public async Task<
+            PropertyMatchSalesAutomationRetryDashboardDto>
+            GetDashboardAsync(
+                CancellationToken cancellationToken = default)
+        {
+            var health =
+                await _healthService
+                    .GetHealthAsync(
+                        cancellationToken);
+
+            var metrics =
+                _metricsService
+                    .GetSnapshot();
+
+            var persistentSummary =
+                await _eventRepository
+                    .GetSummaryAsync(
+                        cancellationToken);
+
+            var recentEvents =
+                await _eventRepository
+                    .GetRecentAsync(
+                        20,
+                        cancellationToken);
+
+            var alerts =
+                await _alertService
+                    .GetAlertsAsync(
+                        cancellationToken);
+
+            var alertAnalytics =
+                await _alertAnalyticsService
+                    .GetAnalyticsAsync(
+                        cancellationToken);
+
+            var risk =
+                await _riskScoreService
+                    .GetRiskScoreAsync(
+                        cancellationToken);
+
+            var incidentAnalytics =
+                await _incidentAnalyticsService
+                    .GetAnalyticsAsync(
+                        cancellationToken);
+
+            var slaBreaches =
+                await _incidentSlaService
+                    .GetBreachedAsync(
+                        100,
+                        cancellationToken);
+
+            var escalations =
+                await _incidentEscalationService
+                    .GetEscalationsAsync(
+                        100,
+                        cancellationToken);
+
+            var escalationAnalytics =
+                await _incidentEscalationAnalyticsService
+                    .GetAnalyticsAsync(
+                        cancellationToken);
+
+            var operationsReliability =
+                await _operationsReliabilityScoreService
+                    .GetScoreAsync(
+                        cancellationToken);
+
+            var operationsReliabilityTrend =
+                await _operationsReliabilityTrendService
+                    .GetTrendAsync(
+                        cancellationToken);
+
+            var operationsReliabilityAnomaly =
+                await _operationsReliabilityAnomalyService
+                    .DetectAsync(
+                        cancellationToken);
+
+            await _operationsReliabilityAlertService
+                .ProcessActiveAnomaliesAsync(
+                    cancellationToken);
+
+            var operationsReliabilityEscalationSummary =
+                await _operationsReliabilityEscalationSummaryService
+                    .GetAsync(
+                        cancellationToken);
+
+            var score =
+                CalculateScore(
+                    health,
+                    persistentSummary);
+
+            return new()
+            {
+                Status =
+                    GetStatus(score),
+
+                Score =
+                    score,
+
+                Healthy =
+                    health.Healthy,
+
+                Health =
+                    health,
+
+                RuntimeMetrics =
+                    metrics,
+
+                PersistentSummary =
+                    persistentSummary,
+
+                RecentEvents =
+                    recentEvents,
+
+                Alerts =
+                    alerts,
+
+                AlertAnalytics =
+                    alertAnalytics,
+
+                Risk =
+                    risk,
+
+                IncidentAnalytics =
+                    incidentAnalytics,
+
+                IncidentSla =
+                    new PropertyMatchSalesAutomationRetryIncidentSlaSummaryDto
+                    {
+                        BreachedCount =
+                            slaBreaches.Count,
+
+                        AcknowledgeBreachedCount =
+                            slaBreaches.Count(x =>
+                                x.AcknowledgeSlaBreached),
+
+                        ResolveBreachedCount =
+                            slaBreaches.Count(x =>
+                                x.ResolveSlaBreached),
+
+                        Breaches =
+                            slaBreaches
+                    },
+
+                IncidentEscalation =
+                    new PropertyMatchSalesAutomationRetryIncidentEscalationSummaryDto
+                    {
+                        Total =
+                            escalations.Count,
+
+                        Level1Count =
+                            escalations.Count(x =>
+                                x.LevelNumber == 1),
+
+                        Level2Count =
+                            escalations.Count(x =>
+                                x.LevelNumber == 2),
+
+                        Level3Count =
+                            escalations.Count(x =>
+                                x.LevelNumber == 3),
+
+                        Escalations =
+                            escalations
+                    },
+
+                EscalationAnalytics =
+                    escalationAnalytics,
+
+                OperationsReliability =
+                    operationsReliability,
+
+                OperationsReliabilityTrend =
+                    operationsReliabilityTrend,
+
+                OperationsReliabilityAnomaly =
+                    operationsReliabilityAnomaly,
+
+                OperationsReliabilityEscalationSummary =
+                    operationsReliabilityEscalationSummary,
+
+
+                GeneratedAt =
+                    DateTime.UtcNow
+            };
+        }
+
+        private static decimal CalculateScore(
+            PropertyMatchSalesAutomationRetryHealthDto health,
+            PropertyMatchSalesAutomationRetryEventSummaryDto summary)
+        {
+            decimal score = 100m;
+
+            if (!health.DatabaseAvailable)
+                score -= 40m;
+
+            if (!health.EventDatabaseAvailable)
+                score -= 20m;
+
+            if (health.StaleClaims > 0)
+            {
+                score -= Math.Min(
+                    15m,
+                    health.StaleClaims * 3m);
+            }
+
+            if (summary.RetryAttempts >= 5)
+            {
+                score -=
+                    summary.FailureRate * 0.25m;
+            }
+
+            if (summary.LeaseLost > 0)
+            {
+                score -= Math.Min(
+                    10m,
+                    summary.LeaseLost * 2m);
+            }
+
+            return Math.Clamp(
+                Math.Round(score, 2),
+                0m,
+                100m);
+        }
+
+        private static string GetStatus(
+            decimal score)
+        {
+            if (score >= 90m)
+                return "Excellent";
+
+            if (score >= 75m)
+                return "Healthy";
+
+            if (score >= 50m)
+                return "Degraded";
+
+            return "Critical";
+        }
+    }
+
+    public class PropertyMatchSalesAutomationRetryDashboardDto
+    {
+        public string Status { get; set; }
+            = string.Empty;
+
+        public decimal Score { get; set; }
+
+        public bool Healthy { get; set; }
+
+        public PropertyMatchSalesAutomationRetryHealthDto?
+            Health { get; set; }
+
+        public PropertyMatchSalesAutomationRetryMetricsDto?
+            RuntimeMetrics { get; set; }
+
+        public PropertyMatchSalesAutomationRetryEventSummaryDto?
+            PersistentSummary { get; set; }
+
+        public List<
+            REAL_ESTATE_CLEAN.Core.Domain.Entities
+                .PropertyMatchSalesAutomationRetryEvent>
+            RecentEvents { get; set; } = new();
+
+        public PropertyMatchSalesAutomationRetryAlertSummaryDto?
+            Alerts { get; set; }
+
+        public PropertyMatchSalesAutomationRetryAlertAnalyticsDto?
+            AlertAnalytics { get; set; }
+
+        public PropertyMatchSalesAutomationRetryRiskScoreDto?
+            Risk { get; set; }
+
+        public PropertyMatchSalesAutomationRetryIncidentAnalyticsDto?
+            IncidentAnalytics { get; set; }
+
+        public PropertyMatchSalesAutomationRetryIncidentSlaSummaryDto?
+            IncidentSla { get; set; }
+
+        public PropertyMatchSalesAutomationRetryIncidentEscalationSummaryDto?
+            IncidentEscalation { get; set; }
+
+        public PropertyMatchSalesAutomationRetryIncidentEscalationAnalyticsDto?
+            EscalationAnalytics { get; set; }
+
+        public PropertyMatchSalesAutomationOperationsReliabilityScoreDto?
+            OperationsReliability { get; set; }
+
+        public PropertyMatchSalesAutomationOperationsReliabilityTrendDto?
+            OperationsReliabilityTrend { get; set; }
+
+        public PropertyMatchSalesAutomationOperationsReliabilityAnomalyDto?
+            OperationsReliabilityAnomaly { get; set; }
+
+        public PropertyMatchSalesAutomationReliabilityEscalationSummaryDto?
+            OperationsReliabilityEscalationSummary { get; set; }
+
+        public DateTime GeneratedAt { get; set; }
+    }
+
+    public class PropertyMatchSalesAutomationRetryIncidentSlaSummaryDto
+    {
+        public int BreachedCount { get; set; }
+
+        public int AcknowledgeBreachedCount { get; set; }
+
+        public int ResolveBreachedCount { get; set; }
+
+        public List<PropertyMatchSalesAutomationRetryIncidentSlaDto>
+            Breaches { get; set; } = new();
+    }
+
+
+    public class PropertyMatchSalesAutomationRetryIncidentEscalationSummaryDto
+    {
+        public int Total { get; set; }
+
+        public int Level1Count { get; set; }
+
+        public int Level2Count { get; set; }
+
+        public int Level3Count { get; set; }
+
+        public List<PropertyMatchSalesAutomationRetryIncidentEscalationDto>
+            Escalations { get; set; } = new();
+    }
+
+}

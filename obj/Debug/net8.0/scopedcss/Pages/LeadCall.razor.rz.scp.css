@@ -1,0 +1,42 @@
+.call-list[b-fgh7upu8rd]
+{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+    margin-top:30px;
+}
+
+
+.call-card[b-fgh7upu8rd]
+{
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 5px 20px rgba(0,0,0,0.08);
+}
+
+
+.call-card h3[b-fgh7upu8rd]
+{
+    font-size:20px;
+    margin-bottom:12px;
+}
+
+
+.call-card p[b-fgh7upu8rd]
+{
+    margin:8px 0;
+}
+
+
+.call-card b[b-fgh7upu8rd]
+{
+    font-weight:bold;
+}
+
+
+.call-card small[b-fgh7upu8rd]
+{
+    display:block;
+    margin-top:15px;
+}

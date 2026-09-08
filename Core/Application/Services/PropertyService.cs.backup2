@@ -1,0 +1,64 @@
+using REAL_ESTATE_CLEAN.Core.Application.DTO;
+using REAL_ESTATE_CLEAN.Core.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+namespace REAL_ESTATE_CLEAN.Core.Application.Services;
+
+public class PropertyService
+{
+    private readonly AppDbContext _context;
+
+    public PropertyService(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<List<PropertyDto>> GetAll()
+    {
+        return await _context.Properties
+            .Select(x => new PropertyDto
+            {
+                Id = x.Id,
+                Title = x.Title,
+                Location = x.Location,
+                City = x.City,
+                Price = x.Price,
+                IsPremium = x.IsPremium
+            })
+            .ToListAsync();
+    }
+
+    public async Task<PropertyDto?> GetById(int id)
+    {
+        return await _context.Properties
+            .Where(x => x.Id == id)
+            .Select(x => new PropertyDto
+            {
+                Id = x.Id,
+                Title = x.Title,
+                Location = x.Location,
+                City = x.City,
+                Price = x.Price,
+                IsPremium = x.IsPremium
+            })
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<List<PropertyDto>> Search(string q)
+    {
+        return await _context.Properties
+            .Where(x =>
+                x.Title.Contains(q) ||
+                x.City.Contains(q))
+            .Select(x => new PropertyDto
+            {
+                Id = x.Id,
+                Title = x.Title,
+                Location = x.Location,
+                City = x.City,
+                Price = x.Price,
+                IsPremium = x.IsPremium
+            })
+            .ToListAsync();
+    }
+}

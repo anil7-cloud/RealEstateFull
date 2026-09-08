@@ -1,0 +1,68 @@
+@page "/lead-task"
+
+@inject HttpClient Http
+
+<h1>Lead Tasks</h1>
+
+@if (tasks == null)
+{
+    <p>Yükleniyor...</p>
+}
+else
+{
+    <div class="task-list">
+
+        @foreach (var item in tasks)
+        {
+            <div class="task-card">
+
+                <h3>@item.Title</h3>
+
+                <p>@item.Description</p>
+
+                <div>
+                    Öncelik:
+                    <b>@item.Priority</b>
+                </div>
+
+                <div>
+                    Durum:
+                    <b>@item.Status</b>
+                </div>
+
+                <small>
+                    Tarih: @item.DueDate
+                </small>
+
+            </div>
+        }
+
+    </div>
+}
+
+
+@code {
+
+    private List<TaskDto>? tasks;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        tasks = await Http.GetFromJsonAsync<List<TaskDto>>(
+            "api/lead-task");
+    }
+
+
+    public class TaskDto
+    {
+        public string Title { get; set; } = string.Empty;
+
+        public string Description { get; set; } = string.Empty;
+
+        public string Priority { get; set; } = "Normal";
+
+        public string Status { get; set; } = "Pending";
+
+        public DateTime DueDate { get; set; }
+    }
+}

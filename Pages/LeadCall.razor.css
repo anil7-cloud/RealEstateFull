@@ -1,0 +1,42 @@
+.call-list
+{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+    margin-top:30px;
+}
+
+
+.call-card
+{
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 5px 20px rgba(0,0,0,0.08);
+}
+
+
+.call-card h3
+{
+    font-size:20px;
+    margin-bottom:12px;
+}
+
+
+.call-card p
+{
+    margin:8px 0;
+}
+
+
+.call-card b
+{
+    font-weight:bold;
+}
+
+
+.call-card small
+{
+    display:block;
+    margin-top:15px;
+}

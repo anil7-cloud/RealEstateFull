@@ -1,0 +1,69 @@
+@page "/lead-meeting"
+
+@inject HttpClient Http
+
+<h1>Lead Meetings</h1>
+
+@if (meetings == null)
+{
+    <p>Yükleniyor...</p>
+}
+else
+{
+    <div class="meeting-list">
+
+        @foreach (var item in meetings)
+        {
+            <div class="meeting-card">
+
+                <h3>@item.Title</h3>
+
+                <p>@item.Description</p>
+
+                <div>
+                    Tür:
+                    <b>@item.MeetingType</b>
+                </div>
+
+                <div>
+                    Durum:
+                    <b>@item.Status</b>
+                </div>
+
+                <div>
+                    Tarih:
+                    @item.StartTime
+                </div>
+
+            </div>
+        }
+
+    </div>
+}
+
+
+@code {
+
+    private List<MeetingDto>? meetings;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        meetings = await Http.GetFromJsonAsync<List<MeetingDto>>(
+            "api/lead-meeting");
+    }
+
+
+    public class MeetingDto
+    {
+        public string Title { get; set; } = string.Empty;
+
+        public string Description { get; set; } = string.Empty;
+
+        public string MeetingType { get; set; } = "Meeting";
+
+        public string Status { get; set; } = "Scheduled";
+
+        public DateTime StartTime { get; set; }
+    }
+}

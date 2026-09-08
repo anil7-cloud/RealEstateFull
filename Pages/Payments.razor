@@ -1,0 +1,64 @@
+@page "/payments"
+@using REAL_ESTATE_CLEAN.Core.Application.Services
+@using REAL_ESTATE_CLEAN.Core.Persistence
+@inject REAL_ESTATE_CLEAN.Core.Application.Services.PaymentService PaymentService
+
+<h3>Ödeme Oluştur</h3>
+
+<div>
+    <label>Kullanıcı ID</label>
+    <input type="number" @bind="userId" />
+</div>
+
+<div>
+    <label>İlan ID</label>
+    <input type="number" @bind="propertyId" />
+</div>
+
+<div>
+    <label>Tutar</label>
+    <input type="number" step="0.01" @bind="amount" />
+</div>
+
+<div>
+    <label>Ödeme Yöntemi</label>
+    <input @bind="paymentMethod" placeholder="Kart, Havale..." />
+</div>
+
+<button @onclick="CreatePayment">Ödeme Oluştur</button>
+
+@if (!string.IsNullOrWhiteSpace(statusMessage))
+{
+    <p>@statusMessage</p>
+}
+
+@code {
+    private int userId = 1;
+    private int propertyId = 1;
+    private decimal amount;
+    private string paymentMethod = "Card";
+    private string statusMessage = string.Empty;
+
+    private async Task CreatePayment()
+    {
+        try
+        {
+            var payment = await PaymentService.CreatePayment(
+                userId,
+                propertyId,
+                amount,
+                paymentMethod);
+
+            statusMessage =
+                $"Ödeme oluşturuldu. İşlem No: {payment.TransactionId}";
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            statusMessage = ex.Message;
+        }
+        catch (Exception)
+        {
+            statusMessage = "Ödeme oluşturulurken hata meydana geldi.";
+        }
+    }
+}

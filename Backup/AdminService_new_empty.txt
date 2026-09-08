@@ -1,0 +1,13 @@
+using REAL_ESTATE_CLEAN.Core.Persistence;
+
+namespace REAL_ESTATE_CLEAN.Core.Application.Services;
+
+public class AdminService
+{
+    private readonly AppDbContext _context;
+
+    public AdminService(AppDbContext context)
+    {
+        _context = context;
+    }
+}

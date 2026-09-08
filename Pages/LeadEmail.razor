@@ -1,0 +1,70 @@
+@page "/lead-email"
+
+@inject HttpClient Http
+
+<h1>Lead Emails</h1>
+
+@if (emails == null)
+{
+    <p>Yükleniyor...</p>
+}
+else
+{
+    <div class="email-list">
+
+        @foreach (var item in emails)
+        {
+            <div class="email-card">
+
+                <h3>@item.Subject</h3>
+
+                <p>
+                    Kime:
+                    <b>@item.RecipientEmail</b>
+                </p>
+
+                <p>
+                    @item.Body
+                </p>
+
+                <div>
+                    Durum:
+                    <b>@item.Status</b>
+                </div>
+
+                <small>
+                    Tarih: @item.CreatedAt
+                </small>
+
+            </div>
+        }
+
+    </div>
+}
+
+
+@code {
+
+    private List<EmailDto>? emails;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        emails = await Http.GetFromJsonAsync<List<EmailDto>>(
+            "api/lead-email");
+    }
+
+
+    public class EmailDto
+    {
+        public string RecipientEmail { get; set; } = string.Empty;
+
+        public string Subject { get; set; } = string.Empty;
+
+        public string Body { get; set; } = string.Empty;
+
+        public string Status { get; set; } = "Draft";
+
+        public DateTime CreatedAt { get; set; }
+    }
+}

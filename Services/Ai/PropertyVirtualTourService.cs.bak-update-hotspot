@@ -1,0 +1,304 @@
+using REAL_ESTATE_CLEAN.Core.Domain.Entities;
+
+namespace REAL_ESTATE_CLEAN.Services.Ai
+{
+    public class PropertyVirtualTourService
+    {
+        private readonly PropertyVirtualTourRepository
+            _repository;
+
+        public PropertyVirtualTourService(
+            PropertyVirtualTourRepository repository)
+        {
+            _repository = repository;
+        }
+
+        public async Task<PropertyVirtualTour>
+            CreateAsync(
+                int propertyId,
+                CreatePropertyVirtualTourRequest request,
+                CancellationToken cancellationToken = default)
+        {
+            if (propertyId <= 0)
+                throw new ArgumentException(
+                    "PropertyId geçersiz.");
+
+            if (string.IsNullOrWhiteSpace(request.Title))
+                throw new ArgumentException(
+                    "Tur başlığı zorunludur.");
+
+            var allowedTypes =
+                new[]
+                {
+                    "Panorama360",
+                    "Model3D",
+                    "VirtualTour"
+                };
+
+            if (!allowedTypes.Contains(
+                    request.TourType,
+                    StringComparer.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    "TourType Panorama360, Model3D veya VirtualTour olmalıdır.");
+            }
+
+            var tour =
+                new PropertyVirtualTour
+                {
+                    Id = Guid.NewGuid(),
+                    PropertyId = propertyId,
+                    Title = request.Title.Trim(),
+                    TourType = request.TourType,
+                    ThumbnailUrl = request.ThumbnailUrl,
+                    DisplayOrder = request.DisplayOrder,
+                    IsActive = true,
+                    IsPublished = false
+                };
+
+            return await _repository
+                .CreateAsync(
+                    tour,
+                    cancellationToken);
+        }
+
+        public Task<List<PropertyVirtualTour>>
+            GetPropertyToursAsync(
+                int propertyId,
+                CancellationToken cancellationToken = default)
+        {
+            return _repository
+                .GetByPropertyIdAsync(
+                    propertyId,
+                    cancellationToken);
+        }
+
+        public Task<PropertyVirtualTour?>
+            GetAsync(
+                Guid tourId,
+                CancellationToken cancellationToken = default)
+        {
+            return _repository
+                .GetByIdAsync(
+                    tourId,
+                    cancellationToken);
+        }
+
+        public async Task<PropertyVirtualTourScene>
+            AddSceneAsync(
+                Guid tourId,
+                CreatePropertyVirtualTourSceneRequest request,
+                CancellationToken cancellationToken = default)
+        {
+            var tour =
+                await _repository.GetByIdAsync(
+                    tourId,
+                    cancellationToken);
+
+            if (tour == null)
+                throw new KeyNotFoundException(
+                    "Virtual tour bulunamadı.");
+
+            if (string.IsNullOrWhiteSpace(
+                    request.PanoramaUrl))
+            {
+                throw new ArgumentException(
+                    "PanoramaUrl zorunludur.");
+            }
+
+            var scene =
+                new PropertyVirtualTourScene
+                {
+                    Id = Guid.NewGuid(),
+                    VirtualTourId = tourId,
+                    Name = request.Name.Trim(),
+                    PanoramaUrl =
+                        request.PanoramaUrl.Trim(),
+                    ThumbnailUrl =
+                        request.ThumbnailUrl,
+                    InitialYaw =
+                        request.InitialYaw,
+                    InitialPitch =
+                        request.InitialPitch,
+                    InitialFov =
+                        Math.Clamp(
+                            request.InitialFov,
+                            30m,
+                            120m),
+                    DisplayOrder =
+                        request.DisplayOrder,
+                    IsStartScene =
+                        request.IsStartScene
+                };
+
+            return await _repository
+                .AddSceneAsync(
+                    scene,
+                    cancellationToken);
+        }
+
+        public async Task<PropertyVirtualTourHotspot>
+            AddHotspotAsync(
+                Guid sceneId,
+                CreatePropertyVirtualTourHotspotRequest request,
+                CancellationToken cancellationToken = default)
+        {
+            var hotspot =
+                new PropertyVirtualTourHotspot
+                {
+                    Id = Guid.NewGuid(),
+                    SceneId = sceneId,
+                    Title = request.Title.Trim(),
+                    HotspotType =
+                        request.HotspotType,
+                    TargetSceneId =
+                        request.TargetSceneId,
+                    Yaw = request.Yaw,
+                    Pitch = request.Pitch,
+                    Description =
+                        request.Description
+                };
+
+            return await _repository
+                .AddHotspotAsync(
+                    hotspot,
+                    cancellationToken);
+        }
+
+        public async Task
+            DeleteHotspotAsync(
+                Guid hotspotId,
+                CancellationToken cancellationToken = default)
+        {
+            var deleted =
+                await _repository
+                    .DeleteHotspotAsync(
+                        hotspotId,
+                        cancellationToken);
+
+            if (!deleted)
+            {
+                throw new KeyNotFoundException(
+                    $"Hotspot bulunamadı: {hotspotId}");
+            }
+        }
+
+        public async Task<PropertyThreeDimensionalModel>
+            AddModelAsync(
+                Guid tourId,
+                CreateProperty3DModelRequest request,
+                CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(
+                    request.ModelUrl))
+            {
+                throw new ArgumentException(
+                    "ModelUrl zorunludur.");
+            }
+
+            var model =
+                new PropertyThreeDimensionalModel
+                {
+                    Id = Guid.NewGuid(),
+                    VirtualTourId = tourId,
+                    Name = request.Name.Trim(),
+                    ModelUrl =
+                        request.ModelUrl.Trim(),
+                    Format =
+                        request.Format.ToUpperInvariant(),
+                    PosterUrl =
+                        request.PosterUrl,
+                    AllowRotation =
+                        request.AllowRotation,
+                    AllowZoom =
+                        request.AllowZoom,
+                    AutoRotate =
+                        request.AutoRotate,
+                    AutoRotateSpeed =
+                        request.AutoRotateSpeed
+                };
+
+            return await _repository
+                .AddModelAsync(
+                    model,
+                    cancellationToken);
+        }
+    }
+
+    public class CreatePropertyVirtualTourRequest
+    {
+        public string Title { get; set; } =
+            string.Empty;
+
+        public string TourType { get; set; } =
+            "Panorama360";
+
+        public string? ThumbnailUrl { get; set; }
+
+        public int DisplayOrder { get; set; }
+    }
+
+    public class CreatePropertyVirtualTourSceneRequest
+    {
+        public string Name { get; set; } =
+            string.Empty;
+
+        public string PanoramaUrl { get; set; } =
+            string.Empty;
+
+        public string? ThumbnailUrl { get; set; }
+
+        public decimal InitialYaw { get; set; }
+
+        public decimal InitialPitch { get; set; }
+
+        public decimal InitialFov { get; set; } =
+            75m;
+
+        public int DisplayOrder { get; set; }
+
+        public bool IsStartScene { get; set; }
+    }
+
+    public class CreatePropertyVirtualTourHotspotRequest
+    {
+        public string Title { get; set; } =
+            string.Empty;
+
+        public string HotspotType { get; set; } =
+            "Scene";
+
+        public Guid? TargetSceneId { get; set; }
+
+        public decimal Yaw { get; set; }
+
+        public decimal Pitch { get; set; }
+
+        public string? Description { get; set; }
+    }
+
+    public class CreateProperty3DModelRequest
+    {
+        public string Name { get; set; } =
+            string.Empty;
+
+        public string ModelUrl { get; set; } =
+            string.Empty;
+
+        public string Format { get; set; } =
+            "GLB";
+
+        public string? PosterUrl { get; set; }
+
+        public bool AllowRotation { get; set; } =
+            true;
+
+        public bool AllowZoom { get; set; } =
+            true;
+
+        public bool AutoRotate { get; set; }
+
+        public decimal AutoRotateSpeed { get; set; } =
+            1m;
+    }
+}

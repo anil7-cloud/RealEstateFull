@@ -1,0 +1,30 @@
+@page "/"
+@namespace REAL_ESTATE_CLEAN.Pages
+@using REAL_ESTATE_CLEAN
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
+
+    <base href="~/" />
+
+    <title>Real Estate Clean</title>
+
+    <link rel="stylesheet"
+          href="css/bootstrap/bootstrap.min.css" />
+
+    <link rel="stylesheet"
+          href="css/site.css" />
+</head>
+<body>
+    <component type="typeof(App)"
+               render-mode="ServerPrerendered" />
+
+    <script src="_framework/blazor.server.js"></script>
+    <script src="/js/panorama360.js"></script>
+</body>
+</html>

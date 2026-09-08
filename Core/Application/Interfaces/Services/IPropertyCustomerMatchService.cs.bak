@@ -1,0 +1,34 @@
+using REAL_ESTATE_CLEAN.Core.Application.DTOs.Property;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace REAL_ESTATE_CLEAN.Core.Application.Interfaces.Services
+{
+    public interface IPropertyCustomerMatchService
+    {
+        Task<List<PropertyCustomerMatchDto>> GetAllAsync();
+
+        Task<PropertyCustomerMatchDto?> GetByIdAsync(int id);
+
+        Task<List<PropertyCustomerMatchDto>> GetByLeadIdAsync(int leadId);
+
+        Task<List<PropertyCustomerMatchDto>> GetByPropertyIdAsync(int propertyId);
+
+        Task<PropertyCustomerMatchDto> CreateAsync(
+            PropertyCustomerMatchDto request);
+
+        Task<PropertyCustomerMatchDto?> UpdateAsync(
+            int id,
+            PropertyCustomerMatchDto request);
+
+        Task<bool> DeleteAsync(int id);
+
+        Task<List<PropertyCustomerMatchDto>> GetBestMatchesForLeadAsync(
+            int leadId,
+            int limit = 10);
+
+        Task<List<PropertyCustomerMatchDto>> GetBestLeadsForPropertyAsync(
+            int propertyId,
+            int limit = 10);
+    }
+}

@@ -1,0 +1,68 @@
+@page "/lead-dashboard"
+
+@inject HttpClient Http
+
+<h1>Lead Dashboard</h1>
+
+@if (dashboard == null)
+{
+    <p>Yükleniyor...</p>
+}
+else
+{
+    <div class="dashboard-grid">
+
+        <div class="card">
+            <h3>Toplam Lead</h3>
+            <p>@dashboard.TotalLeads</p>
+        </div>
+
+        <div class="card">
+            <h3>Yeni Lead</h3>
+            <p>@dashboard.NewLeads</p>
+        </div>
+
+        <div class="card">
+            <h3>Kazanılan</h3>
+            <p>@dashboard.ConvertedLeads</p>
+        </div>
+
+        <div class="card">
+            <h3>Kayıp</h3>
+            <p>@dashboard.LostLeads</p>
+        </div>
+
+        <div class="card">
+            <h3>Dönüşüm Oranı</h3>
+            <p>%@dashboard.ConversionRate</p>
+        </div>
+
+    </div>
+}
+
+
+@code {
+
+    private LeadDashboardDto? dashboard;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        dashboard = await Http.GetFromJsonAsync<LeadDashboardDto>(
+            "api/lead-dashboard/summary");
+    }
+
+
+    public class LeadDashboardDto
+    {
+        public int TotalLeads { get; set; }
+
+        public int NewLeads { get; set; }
+
+        public int ConvertedLeads { get; set; }
+
+        public int LostLeads { get; set; }
+
+        public decimal ConversionRate { get; set; }
+    }
+}

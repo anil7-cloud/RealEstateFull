@@ -1,0 +1,90 @@
+@page "/login"
+
+@using REAL_ESTATE_CLEAN.Infrastructure.Auth
+
+@inject AuthService Auth
+@inject CurrentUserService CurrentUser
+@inject NavigationManager Nav
+
+<h3>Giriş</h3>
+
+<div>
+    <input @bind="email"
+           placeholder="Email"
+           type="email" />
+</div>
+
+<div>
+    <input @bind="password"
+           placeholder="Password"
+           type="password" />
+</div>
+
+<button @onclick="DoLogin">
+    Giriş Yap
+</button>
+
+@if (!string.IsNullOrWhiteSpace(error))
+{
+    <p style="color:red">@error</p>
+}
+
+@if (!string.IsNullOrWhiteSpace(success))
+{
+    <p style="color:green">@success</p>
+}
+
+@code {
+
+    private string email = "";
+    private string password = "";
+
+    private string error = "";
+    private string success = "";
+
+    private async Task DoLogin()
+    {
+        error = "";
+        success = "";
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            error = "Email boş olamaz.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            error = "Şifre boş olamaz.";
+            return;
+        }
+
+        try
+        {
+            var user = await Auth.GetUserForLogin(
+                email.Trim(),
+                password);
+
+            if (user is null)
+            {
+                error = "Email veya şifre hatalı.";
+                return;
+            }
+
+            CurrentUser.SetUser(
+                user.Id,
+                user.Email,
+                user.Role);
+
+            success = "Giriş başarılı.";
+
+            await Task.Delay(300);
+
+            Nav.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            error = "Giriş hatası: " + ex.Message;
+        }
+    }
+}

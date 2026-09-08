@@ -1,0 +1,1 @@
+public DashboardDto GetDashboard() { return new DashboardDto(); }

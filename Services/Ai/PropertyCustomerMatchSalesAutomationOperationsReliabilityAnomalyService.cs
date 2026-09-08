@@ -1,0 +1,257 @@
+namespace REAL_ESTATE_CLEAN.Services.Ai
+{
+    public class PropertyCustomerMatchSalesAutomationOperationsReliabilityAnomalyService
+    {
+        private readonly
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityHistoryRepository
+                _historyRepository;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityAnomalyHistoryRepository
+                _anomalyHistoryRepository;
+
+        public PropertyCustomerMatchSalesAutomationOperationsReliabilityAnomalyService(
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityHistoryRepository historyRepository,
+            PropertyCustomerMatchSalesAutomationOperationsReliabilityAnomalyHistoryRepository anomalyHistoryRepository)
+        {
+            _historyRepository =
+                historyRepository;
+
+            _anomalyHistoryRepository =
+                anomalyHistoryRepository;
+        }
+
+        public async Task<
+            PropertyMatchSalesAutomationOperationsReliabilityAnomalyDto>
+            DetectAsync(
+                CancellationToken cancellationToken = default)
+        {
+            var history =
+                await _historyRepository
+                    .GetRecentAsync(
+                        100,
+                        cancellationToken);
+
+            var ordered =
+                history
+                    .OrderBy(x => x.CreatedAt)
+                    .ToList();
+
+            if (ordered.Count < 2)
+            {
+                return new()
+                {
+                    HasAnomaly = false,
+                    Severity = "None",
+                    Reason = "InsufficientData",
+                    GeneratedAt = DateTime.UtcNow
+                };
+            }
+
+            var current =
+                ordered[^1];
+
+            var previous =
+                ordered[^2];
+
+            var scoreChange =
+                Math.Round(
+                    current.Score -
+                    previous.Score,
+                    2);
+
+            var drop =
+                Math.Max(
+                    0m,
+                    -scoreChange);
+
+            var severity =
+                GetSeverity(
+                    drop,
+                    current.Score);
+
+            var reasons =
+                DetectReasons(
+                    previous,
+                    current);
+
+            var result =
+                new PropertyMatchSalesAutomationOperationsReliabilityAnomalyDto
+            {
+                HasAnomaly =
+                    severity != "None",
+
+                Severity =
+                    severity,
+
+                PreviousScore =
+                    previous.Score,
+
+                CurrentScore =
+                    current.Score,
+
+                ScoreChange =
+                    scoreChange,
+
+                ScoreDrop =
+                    drop,
+
+                PreviousSnapshotAt =
+                    previous.CreatedAt,
+
+                CurrentSnapshotAt =
+                    current.CreatedAt,
+
+                Reasons =
+                    reasons,
+
+                Reason =
+                    reasons.FirstOrDefault()
+                    ?? "None",
+
+                GeneratedAt =
+                    DateTime.UtcNow
+            };
+
+
+            if (result.HasAnomaly)
+            {
+                await _anomalyHistoryRepository
+                    .AddIfNeededAsync(
+                        result,
+                        cancellationToken);
+            }
+            else
+            {
+                /*
+                 * Sistem tekrar normal duruma geldiyse açık
+                 * anomaly kayıtlarını kapat.
+                 */
+                await _anomalyHistoryRepository
+                    .ResolveAllActiveAsync(
+                        cancellationToken);
+            }
+
+            return result;
+        }
+
+        private static string GetSeverity(
+            decimal drop,
+            decimal currentScore)
+        {
+            /*
+             * Büyük ve ani skor düşüşleri anomaly olarak kabul edilir.
+             */
+
+            if (drop >= 15m ||
+                currentScore < 50m)
+            {
+                return "Critical";
+            }
+
+            if (drop >= 8m ||
+                currentScore < 70m)
+            {
+                return "Warning";
+            }
+
+            return "None";
+        }
+
+        private static List<string> DetectReasons(
+            Core.Domain.Entities
+                .PropertyMatchSalesAutomationOperationsReliabilityHistory previous,
+            Core.Domain.Entities
+                .PropertyMatchSalesAutomationOperationsReliabilityHistory current)
+        {
+            var reasons =
+                new List<string>();
+
+            if (current.RiskScore >
+                previous.RiskScore)
+            {
+                reasons.Add(
+                    "OperationalRiskIncreased");
+            }
+
+            if (current.CriticalIncidents >
+                previous.CriticalIncidents)
+            {
+                reasons.Add(
+                    "CriticalIncidentsIncreased");
+            }
+
+            if (current.SlaBreaches >
+                previous.SlaBreaches)
+            {
+                reasons.Add(
+                    "SlaBreachesIncreased");
+            }
+
+            if (current.Level3Escalations >
+                previous.Level3Escalations)
+            {
+                reasons.Add(
+                    "Level3EscalationsIncreased");
+            }
+
+            if (current.OpenIncidents >
+                previous.OpenIncidents)
+            {
+                reasons.Add(
+                    "OpenIncidentsIncreased");
+            }
+
+            if (current.MttrMinutes >
+                previous.MttrMinutes)
+            {
+                reasons.Add(
+                    "MttrIncreased");
+            }
+
+            if (current.ResolutionRate <
+                previous.ResolutionRate)
+            {
+                reasons.Add(
+                    "ResolutionRateDecreased");
+            }
+
+            if (reasons.Count == 0)
+            {
+                reasons.Add(
+                    "ReliabilityScoreDropped");
+            }
+
+            return reasons;
+        }
+    }
+
+    public class
+        PropertyMatchSalesAutomationOperationsReliabilityAnomalyDto
+    {
+        public bool HasAnomaly { get; set; }
+
+        public string Severity { get; set; }
+            = "None";
+
+        public decimal PreviousScore { get; set; }
+
+        public decimal CurrentScore { get; set; }
+
+        public decimal ScoreChange { get; set; }
+
+        public decimal ScoreDrop { get; set; }
+
+        public string Reason { get; set; }
+            = "None";
+
+        public List<string> Reasons { get; set; }
+            = new();
+
+        public DateTime? PreviousSnapshotAt { get; set; }
+
+        public DateTime? CurrentSnapshotAt { get; set; }
+
+        public DateTime GeneratedAt { get; set; }
+    }
+}

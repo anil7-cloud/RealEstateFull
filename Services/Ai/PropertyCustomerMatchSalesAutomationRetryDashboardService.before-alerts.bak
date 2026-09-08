@@ -1,0 +1,164 @@
+namespace REAL_ESTATE_CLEAN.Services.Ai
+{
+    public class PropertyCustomerMatchSalesAutomationRetryDashboardService
+    {
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryHealthService
+                _healthService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryMetricsService
+                _metricsService;
+
+        private readonly
+            PropertyCustomerMatchSalesAutomationRetryEventRepository
+                _eventRepository;
+
+        public PropertyCustomerMatchSalesAutomationRetryDashboardService(
+            PropertyCustomerMatchSalesAutomationRetryHealthService healthService,
+            PropertyCustomerMatchSalesAutomationRetryMetricsService metricsService,
+            PropertyCustomerMatchSalesAutomationRetryEventRepository eventRepository)
+        {
+            _healthService = healthService;
+            _metricsService = metricsService;
+            _eventRepository = eventRepository;
+        }
+
+        public async Task<
+            PropertyMatchSalesAutomationRetryDashboardDto>
+            GetDashboardAsync(
+                CancellationToken cancellationToken = default)
+        {
+            var health =
+                await _healthService
+                    .GetHealthAsync(
+                        cancellationToken);
+
+            var metrics =
+                _metricsService
+                    .GetSnapshot();
+
+            var persistentSummary =
+                await _eventRepository
+                    .GetSummaryAsync(
+                        cancellationToken);
+
+            var recentEvents =
+                await _eventRepository
+                    .GetRecentAsync(
+                        20,
+                        cancellationToken);
+
+            var score =
+                CalculateScore(
+                    health,
+                    persistentSummary);
+
+            return new()
+            {
+                Status =
+                    GetStatus(score),
+
+                Score =
+                    score,
+
+                Healthy =
+                    health.Healthy,
+
+                Health =
+                    health,
+
+                RuntimeMetrics =
+                    metrics,
+
+                PersistentSummary =
+                    persistentSummary,
+
+                RecentEvents =
+                    recentEvents,
+
+                GeneratedAt =
+                    DateTime.UtcNow
+            };
+        }
+
+        private static decimal CalculateScore(
+            PropertyMatchSalesAutomationRetryHealthDto health,
+            PropertyMatchSalesAutomationRetryEventSummaryDto summary)
+        {
+            decimal score = 100m;
+
+            if (!health.DatabaseAvailable)
+                score -= 40m;
+
+            if (!health.EventDatabaseAvailable)
+                score -= 20m;
+
+            if (health.StaleClaims > 0)
+            {
+                score -= Math.Min(
+                    15m,
+                    health.StaleClaims * 3m);
+            }
+
+            if (summary.RetryAttempts >= 5)
+            {
+                score -=
+                    summary.FailureRate * 0.25m;
+            }
+
+            if (summary.LeaseLost > 0)
+            {
+                score -= Math.Min(
+                    10m,
+                    summary.LeaseLost * 2m);
+            }
+
+            return Math.Clamp(
+                Math.Round(score, 2),
+                0m,
+                100m);
+        }
+
+        private static string GetStatus(
+            decimal score)
+        {
+            if (score >= 90m)
+                return "Excellent";
+
+            if (score >= 75m)
+                return "Healthy";
+
+            if (score >= 50m)
+                return "Degraded";
+
+            return "Critical";
+        }
+    }
+
+    public class PropertyMatchSalesAutomationRetryDashboardDto
+    {
+        public string Status { get; set; }
+            = string.Empty;
+
+        public decimal Score { get; set; }
+
+        public bool Healthy { get; set; }
+
+        public PropertyMatchSalesAutomationRetryHealthDto?
+            Health { get; set; }
+
+        public PropertyMatchSalesAutomationRetryMetricsDto?
+            RuntimeMetrics { get; set; }
+
+        public PropertyMatchSalesAutomationRetryEventSummaryDto?
+            PersistentSummary { get; set; }
+
+        public List<
+            REAL_ESTATE_CLEAN.Core.Domain.Entities
+                .PropertyMatchSalesAutomationRetryEvent>
+            RecentEvents { get; set; } = new();
+
+        public DateTime GeneratedAt { get; set; }
+    }
+}

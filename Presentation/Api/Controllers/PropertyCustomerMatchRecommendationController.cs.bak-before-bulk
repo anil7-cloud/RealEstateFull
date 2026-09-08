@@ -1,0 +1,109 @@
+using Microsoft.AspNetCore.Mvc;
+using REAL_ESTATE_CLEAN.Services.Ai;
+
+namespace REAL_ESTATE_CLEAN.Presentation.Api.Controllers
+{
+    [ApiController]
+    [Route("api/property-customer-match-recommendation")]
+    public class PropertyCustomerMatchRecommendationController : ControllerBase
+    {
+        private readonly PropertyCustomerMatchRecommendationService
+            _recommendationService;
+
+        public PropertyCustomerMatchRecommendationController(
+            PropertyCustomerMatchRecommendationService recommendationService)
+        {
+            _recommendationService = recommendationService;
+        }
+
+        [HttpGet("lead/{leadId:int}")]
+        public async Task<ActionResult<List<PropertyMatchRecommendationDto>>>
+            GetForLead(
+                int leadId,
+                [FromQuery] decimal minimumScore = 60,
+                [FromQuery] int limit = 10)
+        {
+            if (leadId <= 0)
+                return BadRequest("LeadId geçerli olmalıdır.");
+
+            var result = await _recommendationService
+                .GetRecommendationsForLeadAsync(
+                    leadId,
+                    minimumScore,
+                    limit);
+
+            return Ok(result);
+        }
+
+        [HttpGet("property/{propertyId:int}")]
+        public async Task<ActionResult<List<PropertyMatchRecommendationDto>>>
+            GetForProperty(
+                int propertyId,
+                [FromQuery] decimal minimumScore = 60,
+                [FromQuery] int limit = 10)
+        {
+            if (propertyId <= 0)
+                return BadRequest("PropertyId geçerli olmalıdır.");
+
+            var result = await _recommendationService
+                .GetRecommendedLeadsForPropertyAsync(
+                    propertyId,
+                    minimumScore,
+                    limit);
+
+            return Ok(result);
+        }
+
+        [HttpGet("lead/{leadId:int}/top")]
+        public async Task<ActionResult<PropertyMatchRecommendationDto>>
+            GetTopForLead(int leadId)
+        {
+            if (leadId <= 0)
+                return BadRequest("LeadId geçerli olmalıdır.");
+
+            var result = await _recommendationService
+                .GetRecommendationsForLeadAsync(
+                    leadId,
+                    0,
+                    1);
+
+            var recommendation = result.FirstOrDefault();
+
+            if (recommendation == null)
+            {
+                return NotFound(new
+                {
+                    message = "Lead için eşleşme bulunamadı."
+                });
+            }
+
+            return Ok(recommendation);
+        }
+
+        [HttpGet("property/{propertyId:int}/top-lead")]
+        public async Task<ActionResult<PropertyMatchRecommendationDto>>
+            GetTopLeadForProperty(int propertyId)
+        {
+            if (propertyId <= 0)
+                return BadRequest("PropertyId geçerli olmalıdır.");
+
+            var result = await _recommendationService
+                .GetRecommendedLeadsForPropertyAsync(
+                    propertyId,
+                    0,
+                    1);
+
+            var recommendation = result.FirstOrDefault();
+
+            if (recommendation == null)
+            {
+                return NotFound(new
+                {
+                    message = "İlan için uygun lead bulunamadı."
+                });
+            }
+
+            return Ok(recommendation);
+        }
+    }
+}

@@ -1,0 +1,765 @@
+@page "/search"
+
+@using REAL_ESTATE_CLEAN.Core.Application.DTO
+@using REAL_ESTATE_CLEAN.Core.Application.Services
+@using REAL_ESTATE_CLEAN.Core.Persistence
+@using REAL_ESTATE_CLEAN.Infrastructure.Auth
+
+@inject PropertyService Service
+@inject SavedSearchService SavedSearchService
+@inject CurrentUserService CurrentUser
+
+<h1>🔎 İlan Ara</h1>
+
+<div class="search-panel">
+
+    <div class="field">
+        <label>Arama</label>
+
+        <input
+            @bind="q"
+            placeholder="İlan, şehir veya konum ara..." />
+    </div>
+
+    <div class="field">
+        <label>Minimum Fiyat</label>
+
+        <input
+            type="number"
+            @bind="minPrice"
+            placeholder="Minimum fiyat" />
+    </div>
+
+    <div class="field">
+        <label>Maksimum Fiyat</label>
+
+        <input
+            type="number"
+            @bind="maxPrice"
+            placeholder="Maksimum fiyat" />
+    </div>
+
+    <div class="field">
+        <label>Şehir</label>
+
+        <select @bind="selectedCity">
+
+            <option value="">Tüm şehirler</option>
+
+            @foreach (var city in cities)
+            {
+                <option value="@city">
+                    @city
+                </option>
+            }
+
+        </select>
+    </div>
+
+    <div class="field">
+        <label>İlan Türü</label>
+
+        <select @bind="propertyType">
+
+            <option value="">Tümü</option>
+
+            <option value="Satılık">
+                Satılık
+            </option>
+
+            <option value="Kiralık">
+                Kiralık
+            </option>
+
+        </select>
+    </div>
+
+    <div class="field">
+        <label>Oda Sayısı</label>
+
+        <select @bind="roomCount">
+
+            <option value="">Tümü</option>
+
+            <option value="1+0">1+0</option>
+            <option value="1+1">1+1</option>
+            <option value="2+1">2+1</option>
+            <option value="3+1">3+1</option>
+            <option value="4+1">4+1</option>
+            <option value="5+1">5+1</option>
+
+        </select>
+    </div>
+
+    <div class="field">
+        <label>Sıralama</label>
+
+        <select @bind="sort">
+
+            <option value="">
+                En yeni
+            </option>
+
+            <option value="price-asc">
+                Fiyat düşükten yükseğe
+            </option>
+
+            <option value="price-desc">
+                Fiyat yüksekten düşüğe
+            </option>
+
+            <option value="premium">
+                Premium ilanlar
+            </option>
+
+        </select>
+    </div>
+
+    <div class="buttons">
+
+        <button
+            class="search-button"
+            @onclick="DoSearch">
+
+            🔎 Ara
+
+        </button>
+
+        <button
+            class="clear-button"
+            @onclick="ClearFilters">
+
+            Temizle
+
+        </button>
+
+    </div>
+
+</div>
+
+@if (CurrentUser.IsAuthenticated)
+{
+    <section class="saved-searches">
+        <div class="saved-search-header">
+            <h2>🔎 Kaydedilmiş Aramalar</h2>
+
+            <button
+                class="load-saved-button"
+                @onclick="LoadSavedSearches">
+                🔄 Yenile
+            </button>
+        </div>
+
+        @if (savedSearches.Count == 0)
+        {
+            <p>Henüz kaydedilmiş aramanız yok.</p>
+        }
+        else
+        {
+            <div class="saved-search-list">
+                @foreach (var search in savedSearches)
+                {
+                    <div class="saved-search-card">
+                        <div>
+                            <strong>🔎 @search.Name</strong>
+
+                            @if (!string.IsNullOrWhiteSpace(search.Query))
+                            {
+                                <small>@search.Query</small>
+                            }
+                            else
+                            {
+                                <small>Tüm ilanlar</small>
+                            }
+                        </div>
+
+                        <div class="saved-search-actions">
+                            <button
+                                class="run-saved-button"
+                                @onclick="() => RunSavedSearch(search)">
+                                ▶️ Çalıştır
+                            </button>
+
+                            <button
+                                class="delete-saved-button"
+                                @onclick="() => DeleteSavedSearch(search.Id)">
+                                🗑️ Sil
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+}
+
+@if (loading)
+{
+    <p>İlanlar aranıyor...</p>
+}
+else if (results.Count == 0)
+{
+    <div class="empty">
+        İlan bulunamadı.
+    </div>
+}
+else
+{
+    <div class="result-info">
+        <strong>@results.Count</strong> ilan bulundu.
+    </div>
+
+    <div class="results">
+
+        @foreach (var r in results)
+        {
+            <div class="property-card">
+
+                @if (!string.IsNullOrWhiteSpace(r.CoverImageUrl))
+                {
+                    <img
+                        src="@r.CoverImageUrl"
+                        alt="@r.Title"
+                        class="property-image" />
+                }
+                else
+                {
+                    <div class="no-image">
+                        🏠 Fotoğraf yok
+                    </div>
+                }
+
+                <div class="property-content">
+
+                    @if (r.IsPremium)
+                    {
+                        <span class="premium">
+                            ⭐ Premium
+                        </span>
+                    }
+
+                    <h2>@r.Title</h2>
+
+                    <p>
+                        📍 @r.City
+
+                        @if (!string.IsNullOrWhiteSpace(r.Location))
+                        {
+                            <span> • @r.Location</span>
+                        }
+                    </p>
+
+                    <p>
+                        🏷️ @r.PropertyType
+                    </p>
+
+                    @if (!string.IsNullOrWhiteSpace(r.RoomCount))
+                    {
+                        <p>
+                            🛏️ @r.RoomCount
+                        </p>
+                    }
+
+                    <h3>
+                        💰 @r.Price.ToString("N0") ₺
+                    </h3>
+
+                    <a
+                        href="/properties/@r.Id"
+                        class="detail-button">
+
+                        İlanı Gör
+
+                    </a>
+
+                </div>
+
+            </div>
+        }
+
+    </div>
+}
+
+<style>
+
+.search-panel {
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fit, minmax(220px, 1fr));
+
+    gap: 16px;
+
+    padding: 20px;
+
+    margin-bottom: 25px;
+
+    border: 1px solid #ddd;
+
+    border-radius: 12px;
+
+    background: #fafafa;
+}
+
+.field {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+.field label {
+    font-weight: 600;
+}
+
+.field input,
+.field select {
+    padding: 11px;
+
+    border: 1px solid #ccc;
+
+    border-radius: 8px;
+
+    font-size: 15px;
+
+    background: white;
+}
+
+.buttons {
+    display: flex;
+
+    gap: 10px;
+
+    align-items: end;
+}
+
+button {
+    padding: 11px 18px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    font-size: 15px;
+}
+
+.search-button {
+    background: #222;
+
+    color: white;
+}
+
+.clear-button {
+    background: #ddd;
+
+    color: #222;
+}
+
+.result-info {
+    margin-bottom: 15px;
+}
+
+.save-search-panel {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 20px 0;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    background: #fafafa;
+}
+
+.save-search-panel input {
+    flex: 1;
+    min-width: 240px;
+    padding: 11px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+.save-search-button {
+    background: #1565c0;
+    color: white;
+}
+
+.save-search-message {
+    color: #2e7d32;
+    font-weight: 600;
+}
+
+.saved-searches {
+    margin: 25px 0;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    background: #fafafa;
+}
+
+.saved-search-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.saved-search-header h2 {
+    margin: 0;
+}
+
+.saved-search-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.saved-search-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+.saved-search-card small {
+    display: block;
+    margin-top: 5px;
+    color: #777;
+    word-break: break-word;
+}
+
+.saved-search-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.load-saved-button,
+.run-saved-button,
+.delete-saved-button {
+    padding: 9px 13px;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+}
+
+.run-saved-button {
+    background: #2e7d32;
+    color: white;
+}
+
+.delete-saved-button {
+    background: #c62828;
+    color: white;
+}
+
+@@media (max-width: 700px) {
+    .saved-search-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .saved-search-actions {
+        flex-direction: column;
+    }
+}
+
+.results {
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fill, minmax(300px, 1fr));
+
+    gap: 20px;
+}
+
+.property-card {
+    border: 1px solid #ddd;
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    background: white;
+}
+
+.property-image,
+.no-image {
+    width: 100%;
+
+    height: 210px;
+
+    object-fit: cover;
+}
+
+.no-image {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: #eee;
+
+    font-size: 18px;
+}
+
+.property-content {
+    padding: 18px;
+}
+
+.property-content h2 {
+    margin-top: 8px;
+
+    font-size: 21px;
+}
+
+.property-content h3 {
+    margin-top: 15px;
+}
+
+.premium {
+    font-weight: bold;
+
+    color: #b8860b;
+}
+
+.detail-button {
+    display: inline-block;
+
+    margin-top: 10px;
+
+    padding: 9px 14px;
+
+    background: #222;
+
+    color: white;
+
+    border-radius: 7px;
+
+    text-decoration: none;
+}
+
+.empty {
+    padding: 25px;
+
+    border: 1px solid #ddd;
+
+    border-radius: 10px;
+}
+
+@@media (max-width: 700px) {
+
+    .buttons {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+    .buttons button {
+        width: 100%;
+    }
+
+    .results {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+</style>
+
+@code {
+
+    private string q = "";
+
+    private decimal? minPrice;
+
+    private decimal? maxPrice;
+
+    private string selectedCity = "";
+
+    private string propertyType = "";
+
+    private string roomCount = "";
+
+    private string sort = "";
+
+    private bool loading;
+
+    private List<PropertyDto> results = new();
+
+    private List<string> cities = new();
+
+    private List<SavedSearch> savedSearches = new();
+
+    private string saveSearchName = "";
+
+    private string saveSearchMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCities();
+
+        await DoSearch();
+    }
+
+    private async Task LoadCities()
+    {
+        var all = await Service.GetAll();
+
+        cities = all
+            .Select(x => x.City)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct()
+            .OrderBy(x => x)
+            .ToList();
+    }
+
+    private async Task LoadSavedSearches()
+    {
+        if (!CurrentUser.IsAuthenticated)
+            return;
+
+        var userId = CurrentUser.UserId!.Value;
+
+        savedSearches =
+            await SavedSearchService.GetSavedSearches(userId);
+    }
+
+    private async Task SaveCurrentSearch()
+    {
+        if (!CurrentUser.IsAuthenticated)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(saveSearchName))
+        {
+            saveSearchMessage = "Lütfen aramaya bir isim verin.";
+            return;
+        }
+
+        var searchQuery = System.Text.Json.JsonSerializer.Serialize(
+            new
+            {
+                q,
+                minPrice,
+                maxPrice,
+                selectedCity,
+                propertyType,
+                roomCount,
+                sort
+            });
+
+        await SavedSearchService.SaveSearch(
+            CurrentUser.UserId!.Value,
+            saveSearchName.Trim(),
+            searchQuery);
+
+        saveSearchName = "";
+        saveSearchMessage = "Arama kaydedildi.";
+
+        await LoadSavedSearches();
+    }
+
+    private async Task DeleteSavedSearch(int id)
+    {
+        if (!CurrentUser.IsAuthenticated)
+            return;
+
+        await SavedSearchService.DeleteSavedSearch(
+            CurrentUser.UserId!.Value,
+            id);
+
+        await LoadSavedSearches();
+    }
+
+    private async Task RunSavedSearch(SavedSearch search)
+    {
+        if (string.IsNullOrWhiteSpace(search.Query))
+        {
+            await DoSearch();
+            return;
+        }
+
+        try
+        {
+            var saved =
+                System.Text.Json.JsonSerializer.Deserialize<SavedSearchFilter>(
+                    search.Query);
+
+            if (saved is null)
+                return;
+
+            q = saved.Q ?? "";
+            minPrice = saved.MinPrice;
+            maxPrice = saved.MaxPrice;
+            selectedCity = saved.SelectedCity ?? "";
+            propertyType = saved.PropertyType ?? "";
+            roomCount = saved.RoomCount ?? "";
+            sort = saved.Sort ?? "";
+
+            await DoSearch();
+        }
+        catch
+        {
+            q = search.Query;
+            await DoSearch();
+        }
+    }
+
+    private sealed class SavedSearchFilter
+    {
+        public string? Q { get; set; }
+        public decimal? MinPrice { get; set; }
+        public decimal? MaxPrice { get; set; }
+        public string? SelectedCity { get; set; }
+        public string? PropertyType { get; set; }
+        public string? RoomCount { get; set; }
+        public string? Sort { get; set; }
+    }
+
+    private async Task DoSearch()
+    {
+        loading = true;
+
+        try
+        {
+            results = await Service.Search(
+                q,
+                minPrice,
+                maxPrice,
+                selectedCity,
+                propertyType,
+                roomCount,
+                sort);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task ClearFilters()
+    {
+        q = "";
+        minPrice = null;
+        maxPrice = null;
+        selectedCity = "";
+        propertyType = "";
+        roomCount = "";
+        sort = "";
+
+        await DoSearch();
+    }
+
+}

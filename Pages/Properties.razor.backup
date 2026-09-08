@@ -1,0 +1,179 @@
+@page "/properties"
+
+@using REAL_ESTATE_CLEAN.Core.Application.DTO
+@inject PropertyService PropertyService
+@inject FavoriteService FavoriteService
+
+
+<h1>🏢 İlanlar</h1>
+
+
+<div class="grid">
+
+
+@foreach(var property in properties)
+{
+
+<div class="property-card">
+
+
+<h2>
+@property.Title
+</h2>
+
+
+<p>
+📍 @property.Location
+</p>
+
+
+<p class="city">
+@property.City
+</p>
+
+
+<h3>
+💰 @property.Price.ToString("N0") ₺
+</h3>
+
+
+@if(property.IsPremium)
+{
+<span class="premium">
+⭐ Premium
+</span>
+}
+
+
+<br/>
+
+
+<button @onclick="() => ToggleFavorite(property.Id)">
+
+@(favoriteIds.Contains(property.Id)
+? "❤️ Favoride"
+: "🤍 Favoriye Ekle")
+
+</button>
+
+
+</div>
+
+}
+
+
+</div>
+
+
+
+@code {
+
+
+private const int UserId = 1;
+
+
+private List<PropertyDto> properties = new();
+
+private List<int> favoriteIds = new();
+
+
+
+protected override async Task OnInitializedAsync()
+{
+
+    properties = await PropertyService.GetAll();
+
+
+    favoriteIds =
+        await FavoriteService.GetUserFavoriteIds(UserId);
+
+}
+
+
+
+private async Task ToggleFavorite(int id)
+{
+
+    await FavoriteService.ToggleFavorite(
+        UserId,
+        id);
+
+
+    if(favoriteIds.Contains(id))
+    {
+        favoriteIds.Remove(id);
+    }
+    else
+    {
+        favoriteIds.Add(id);
+    }
+
+}
+
+}
+
+
+
+<style>
+
+
+.grid{
+
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:25px;
+
+}
+
+
+
+.property-card{
+
+background:white;
+padding:25px;
+border-radius:18px;
+box-shadow:0 5px 20px #ddd;
+
+}
+
+
+
+.property-card h2{
+
+font-size:22px;
+
+}
+
+
+
+.city{
+
+color:#777;
+
+}
+
+
+
+.premium{
+
+background:#ffd700;
+padding:5px 10px;
+border-radius:10px;
+
+}
+
+
+
+button{
+
+margin-top:15px;
+padding:10px 15px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+
+}
+
+
+</style>
+

@@ -1,0 +1,37 @@
+@attribute [Authorize]
+@page "/listings"
+@inject HttpClient Http
+
+<h1>Properties</h1>
+
+@if (properties == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    @foreach (var p in properties)
+    {
+        <div style="border:1px solid #ccc;padding:10px;margin:5px;">
+            <h3>@p.Title</h3>
+            <p>@p.City</p>
+            <p>@p.Price ₺</p>
+        </div>
+    }
+}
+
+@code {
+    List<Property>? properties;
+
+    protected override async Task OnInitializedAsync()
+    {
+        properties = await Http.GetFromJsonAsync<List<Property>>("/properties?page=1&size=10");
+    }
+
+    public class Property
+    {
+        public string Title { get; set; } = "";
+        public string City { get; set; } = "";
+        public decimal Price { get; set; }
+    }
+}

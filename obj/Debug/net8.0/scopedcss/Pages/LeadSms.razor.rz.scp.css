@@ -1,0 +1,43 @@
+.sms-list[b-2snczp81ur]
+{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+    margin-top:30px;
+}
+
+
+.sms-card[b-2snczp81ur]
+{
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 5px 20px rgba(0,0,0,0.08);
+}
+
+
+.sms-card h3[b-2snczp81ur]
+{
+    font-size:20px;
+    margin-bottom:10px;
+}
+
+
+.sms-card p[b-2snczp81ur]
+{
+    color:#555;
+    line-height:1.5;
+}
+
+
+.sms-card b[b-2snczp81ur]
+{
+    font-weight:bold;
+}
+
+
+.sms-card small[b-2snczp81ur]
+{
+    display:block;
+    margin-top:15px;
+}

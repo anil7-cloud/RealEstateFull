@@ -1,0 +1,16 @@
+namespace REAL_ESTATE_CLEAN.Core.Application.DTOs.Property;
+
+public class PropertyAiEvaluationRequestDto
+{
+    public int PropertyId { get; set; }
+
+    public string EvaluationType { get; set; } = string.Empty;
+
+    public decimal Score { get; set; }
+
+    public string EvaluationResult { get; set; } = string.Empty;
+
+    public string Notes { get; set; } = string.Empty;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}

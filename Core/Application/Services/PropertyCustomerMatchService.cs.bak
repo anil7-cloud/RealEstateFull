@@ -1,0 +1,203 @@
+using Microsoft.EntityFrameworkCore;
+using REAL_ESTATE_CLEAN.Core.Application.DTOs.Property;
+using REAL_ESTATE_CLEAN.Core.Application.Interfaces.Services;
+using REAL_ESTATE_CLEAN.Core.Persistence;
+
+namespace REAL_ESTATE_CLEAN.Core.Application.Services
+{
+    public class PropertyCustomerMatchService : IPropertyCustomerMatchService
+    {
+        private readonly AppDbContext _context;
+
+        public PropertyCustomerMatchService(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<List<PropertyCustomerMatchDto>> GetAllAsync()
+        {
+            return await _context.Set<PropertyCustomerMatch>()
+                .AsNoTracking()
+                .OrderByDescending(x => x.MatchScore)
+                .Select(x => ToDto(x))
+                .ToListAsync();
+        }
+
+        public async Task<PropertyCustomerMatchDto?> GetByIdAsync(int id)
+        {
+            return await _context.Set<PropertyCustomerMatch>()
+                .AsNoTracking()
+                .Where(x => x.Id == id)
+                .Select(x => ToDto(x))
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<List<PropertyCustomerMatchDto>> GetByLeadIdAsync(
+            int leadId)
+        {
+            return await _context.Set<PropertyCustomerMatch>()
+                .AsNoTracking()
+                .Where(x => x.LeadId == leadId)
+                .OrderByDescending(x => x.MatchScore)
+                .Select(x => ToDto(x))
+                .ToListAsync();
+        }
+
+        public async Task<List<PropertyCustomerMatchDto>> GetByPropertyIdAsync(
+            int propertyId)
+        {
+            return await _context.Set<PropertyCustomerMatch>()
+                .AsNoTracking()
+                .Where(x => x.PropertyId == propertyId)
+                .OrderByDescending(x => x.MatchScore)
+                .Select(x => ToDto(x))
+                .ToListAsync();
+        }
+
+        public async Task<PropertyCustomerMatchDto> CreateAsync(
+            PropertyCustomerMatchDto request)
+        {
+            var entity = new PropertyCustomerMatch
+            {
+                PropertyId = request.PropertyId,
+                LeadId = request.LeadId,
+                MatchScore = NormalizeScore(request.MatchScore),
+                PriceMatched = request.PriceMatched,
+                LocationMatched = request.LocationMatched,
+                PropertyTypeMatched = request.PropertyTypeMatched,
+                RoomCountMatched = request.RoomCountMatched,
+                SizeMatched = request.SizeMatched,
+                MatchReason = request.MatchReason,
+                Status = string.IsNullOrWhiteSpace(request.Status)
+                    ? "New"
+                    : request.Status,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Set<PropertyCustomerMatch>().Add(entity);
+
+            await _context.SaveChangesAsync();
+
+            return ToDto(entity);
+        }
+
+        public async Task<PropertyCustomerMatchDto?> UpdateAsync(
+            int id,
+            PropertyCustomerMatchDto request)
+        {
+            var entity = await _context.Set<PropertyCustomerMatch>()
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (entity == null)
+                return null;
+
+            entity.PropertyId = request.PropertyId;
+            entity.LeadId = request.LeadId;
+            entity.MatchScore = NormalizeScore(request.MatchScore);
+            entity.PriceMatched = request.PriceMatched;
+            entity.LocationMatched = request.LocationMatched;
+            entity.PropertyTypeMatched = request.PropertyTypeMatched;
+            entity.RoomCountMatched = request.RoomCountMatched;
+            entity.SizeMatched = request.SizeMatched;
+            entity.MatchReason = request.MatchReason;
+            entity.Status = request.Status;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return ToDto(entity);
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var entity = await _context.Set<PropertyCustomerMatch>()
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (entity == null)
+                return false;
+
+            _context.Set<PropertyCustomerMatch>().Remove(entity);
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<List<PropertyCustomerMatchDto>>
+            GetBestMatchesForLeadAsync(
+                int leadId,
+                int limit = 10)
+        {
+            limit = NormalizeLimit(limit);
+
+            return await _context.Set<PropertyCustomerMatch>()
+                .AsNoTracking()
+                .Where(x => x.LeadId == leadId)
+                .OrderByDescending(x => x.MatchScore)
+                .ThenByDescending(x => x.CreatedAt)
+                .Take(limit)
+                .Select(x => ToDto(x))
+                .ToListAsync();
+        }
+
+        public async Task<List<PropertyCustomerMatchDto>>
+            GetBestLeadsForPropertyAsync(
+                int propertyId,
+                int limit = 10)
+        {
+            limit = NormalizeLimit(limit);
+
+            return await _context.Set<PropertyCustomerMatch>()
+                .AsNoTracking()
+                .Where(x => x.PropertyId == propertyId)
+                .OrderByDescending(x => x.MatchScore)
+                .ThenByDescending(x => x.CreatedAt)
+                .Take(limit)
+                .Select(x => ToDto(x))
+                .ToListAsync();
+        }
+
+        private static PropertyCustomerMatchDto ToDto(
+            PropertyCustomerMatch entity)
+        {
+            return new PropertyCustomerMatchDto
+            {
+                Id = entity.Id,
+                PropertyId = entity.PropertyId,
+                LeadId = entity.LeadId,
+                MatchScore = entity.MatchScore,
+                PriceMatched = entity.PriceMatched,
+                LocationMatched = entity.LocationMatched,
+                PropertyTypeMatched = entity.PropertyTypeMatched,
+                RoomCountMatched = entity.RoomCountMatched,
+                SizeMatched = entity.SizeMatched,
+                MatchReason = entity.MatchReason,
+                Status = entity.Status,
+                CreatedAt = entity.CreatedAt,
+                UpdatedAt = entity.UpdatedAt
+            };
+        }
+
+        private static decimal NormalizeScore(decimal score)
+        {
+            if (score < 0)
+                return 0;
+
+            if (score > 100)
+                return 100;
+
+            return score;
+        }
+
+        private static int NormalizeLimit(int limit)
+        {
+            if (limit < 1)
+                return 10;
+
+            if (limit > 100)
+                return 100;
+
+            return limit;
+        }
+    }
+}

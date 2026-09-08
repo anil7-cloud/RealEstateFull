@@ -1,0 +1,271 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    background: #111;
+}
+
+body {
+    overflow: hidden;
+}
+
+#propertyMedia {
+    display: flex;
+    flex-direction: column;
+
+    width: 100%;
+    height: 100%;
+}
+
+#mediaHeader {
+    min-height: 72px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 12px 18px;
+
+    background: #171717;
+    color: white;
+}
+
+#propertyTitle {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+#mediaStatus {
+    margin-top: 5px;
+
+    font-size: 13px;
+
+    opacity: 0.7;
+}
+
+button {
+    border: 0;
+
+    border-radius: 8px;
+
+    padding: 10px 15px;
+
+    cursor: pointer;
+}
+
+#fullscreenButton {
+    background: #333;
+    color: white;
+}
+
+#tabs {
+    display: flex;
+
+    gap: 6px;
+
+    padding: 8px;
+
+    background: #222;
+}
+
+.tab {
+    flex: 1;
+
+    background: #333;
+    color: white;
+
+    font-weight: 600;
+}
+
+.tab.active {
+    background: white;
+    color: black;
+}
+
+.tab:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+#mediaContent {
+    position: relative;
+
+    flex: 1;
+
+    min-height: 0;
+}
+
+.media-panel {
+    position: absolute;
+
+    inset: 0;
+
+    display: none;
+}
+
+.media-panel.active {
+    display: block;
+}
+
+#mainPhotoContainer {
+    position: absolute;
+
+    inset: 0 0 96px 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+
+    background: #080808;
+}
+
+#mainPhoto {
+    width: 100%;
+    height: 100%;
+
+    object-fit: contain;
+
+    display: none;
+}
+
+#photoThumbnails {
+    position: absolute;
+
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    height: 96px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 8px;
+
+    overflow-x: auto;
+
+    background: #181818;
+}
+
+.thumbnail {
+    width: 120px;
+    height: 78px;
+
+    flex: 0 0 auto;
+
+    object-fit: cover;
+
+    border-radius: 7px;
+
+    opacity: 0.6;
+
+    cursor: pointer;
+}
+
+.thumbnail.active {
+    opacity: 1;
+
+    outline: 2px solid white;
+}
+
+.photo-navigation {
+    position: absolute;
+
+    top: 50%;
+
+    width: 50px;
+    height: 60px;
+
+    transform: translateY(-50%);
+
+    background: rgba(0, 0, 0, 0.65);
+
+    color: white;
+
+    font-size: 35px;
+}
+
+.photo-navigation.previous {
+    left: 15px;
+}
+
+.photo-navigation.next {
+    right: 15px;
+}
+
+iframe {
+    width: 100%;
+    height: 100%;
+
+    border: 0;
+
+    display: none;
+}
+
+.empty-message {
+    position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+
+    color: white;
+
+    text-align: center;
+
+    padding: 20px;
+}
+
+@media (max-width: 700px) {
+
+    #mediaHeader {
+        min-height: 60px;
+
+        padding: 9px 12px;
+    }
+
+    #propertyTitle {
+        font-size: 17px;
+    }
+
+    #tabs {
+        padding: 6px;
+    }
+
+    .tab {
+        padding: 9px 5px;
+
+        font-size: 13px;
+    }
+
+    #mainPhotoContainer {
+        inset: 0 0 82px 0;
+    }
+
+    #photoThumbnails {
+        height: 82px;
+    }
+
+    .thumbnail {
+        width: 100px;
+        height: 66px;
+    }
+}

@@ -1,0 +1,14 @@
+<div class="card">
+    <h3>@Title</h3>
+    <p>@Location</p>
+    <b>@Price ₺</b>
+    <button @onclick="OnClick">Detay</button>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Location { get; set; } = "";
+    [Parameter] public decimal Price { get; set; }
+
+    [Parameter] public EventCallback OnClick { get; set; }
+}

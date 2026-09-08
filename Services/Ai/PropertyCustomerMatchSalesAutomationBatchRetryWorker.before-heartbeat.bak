@@ -1,0 +1,205 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+namespace REAL_ESTATE_CLEAN.Services.Ai
+{
+    public class PropertyCustomerMatchSalesAutomationBatchRetryWorker
+        : BackgroundService
+    {
+        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ILogger<
+            PropertyCustomerMatchSalesAutomationBatchRetryWorker> _logger;
+
+        private static readonly TimeSpan CheckInterval =
+            TimeSpan.FromMinutes(1);
+
+        public PropertyCustomerMatchSalesAutomationBatchRetryWorker(
+            IServiceScopeFactory scopeFactory,
+            ILogger<
+                PropertyCustomerMatchSalesAutomationBatchRetryWorker> logger)
+        {
+            _scopeFactory = scopeFactory;
+            _logger = logger;
+        }
+
+        protected override async Task ExecuteAsync(
+            CancellationToken stoppingToken)
+        {
+            _logger.LogInformation(
+                "Batch retry worker started.");
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await ProcessRetriesAsync(
+                        stoppingToken);
+                }
+                catch (OperationCanceledException)
+                    when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(
+                        ex,
+                        "Batch retry worker cycle failed.");
+                }
+
+                try
+                {
+                    await Task.Delay(
+                        CheckInterval,
+                        stoppingToken);
+                }
+                catch (OperationCanceledException)
+                    when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+            }
+
+            _logger.LogInformation(
+                "Batch retry worker stopped.");
+        }
+
+        private async Task ProcessRetriesAsync(
+            CancellationToken cancellationToken)
+        {
+            using var scope =
+                _scopeFactory.CreateScope();
+
+            var repository =
+                scope.ServiceProvider
+                    .GetRequiredService<
+                        PropertyCustomerMatchSalesAutomationBatchJobRepository>();
+
+            var retryService =
+                scope.ServiceProvider
+                    .GetRequiredService<
+                        PropertyCustomerMatchSalesAutomationBatchJobRetryService>();
+
+            var failed =
+                await repository.GetByStatusAsync(
+                    "Failed",
+                    500,
+                    cancellationToken);
+
+            var interrupted =
+                await repository.GetByStatusAsync(
+                    "Interrupted",
+                    500,
+                    cancellationToken);
+
+            var now =
+                DateTime.UtcNow;
+
+            var candidates =
+                failed
+                    .Concat(interrupted)
+                    .Where(x =>
+                        x.RetryCount < 3 &&
+                        x.NextRetryAt.HasValue &&
+                        x.NextRetryAt.Value <= now)
+                    .OrderBy(x =>
+                        x.NextRetryAt)
+                    .Take(25)
+                    .ToList();
+
+            if (candidates.Count == 0)
+                return;
+
+            _logger.LogInformation(
+                "Found {Count} batch jobs ready for retry.",
+                candidates.Count);
+
+            foreach (var job in candidates)
+            {
+                cancellationToken
+                    .ThrowIfCancellationRequested();
+
+                Guid? claimToken =
+                    null;
+
+                try
+                {
+                    claimToken =
+                        await repository
+                            .TryClaimRetryAsync(
+                                job.JobId,
+                                TimeSpan.FromMinutes(10),
+                                cancellationToken);
+
+                    if (!claimToken.HasValue)
+                    {
+                        _logger.LogInformation(
+                            "Automatic retry skipped. JobId={JobId} is already claimed.",
+                            job.JobId);
+
+                        continue;
+                    }
+
+                    _logger.LogInformation(
+                        "Retry claim acquired. JobId={JobId}, ClaimToken={ClaimToken}",
+                        job.JobId,
+                        claimToken.Value);
+
+                    var result =
+                        await retryService
+                            .RetryAsync(
+                                job.JobId,
+                                cancellationToken);
+
+                    _logger.LogInformation(
+                        "Automatic retry JobId={JobId}, Status={Status}, NewJobId={NewJobId}",
+                        job.JobId,
+                        result.Status,
+                        result.NewJobId);
+                }
+                catch (OperationCanceledException)
+                    when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(
+                        ex,
+                        "Automatic retry failed for JobId={JobId}",
+                        job.JobId);
+                }
+                finally
+                {
+                    if (claimToken.HasValue)
+                    {
+                        try
+                        {
+                            var released =
+                                await repository
+                                    .ReleaseRetryClaimAsync(
+                                        job.JobId,
+                                        claimToken.Value,
+                                        CancellationToken.None);
+
+                            if (!released)
+                            {
+                                _logger.LogWarning(
+                                    "Retry claim could not be released. JobId={JobId}",
+                                    job.JobId);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(
+                                ex,
+                                "Retry claim release failed. JobId={JobId}",
+                                job.JobId);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

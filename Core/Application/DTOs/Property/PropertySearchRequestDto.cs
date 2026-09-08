@@ -1,0 +1,22 @@
+namespace REAL_ESTATE_CLEAN.Core.Application.DTOs.Property;
+
+public class PropertySearchRequestDto
+{
+    public string? Keyword { get; set; }
+
+    public string? City { get; set; }
+
+    public string? District { get; set; }
+
+    public decimal? MinPrice { get; set; }
+
+    public decimal? MaxPrice { get; set; }
+
+    public int? PropertyTypeId { get; set; }
+
+    public int? StatusId { get; set; }
+
+    public int Page { get; set; } = 1;
+
+    public int PageSize { get; set; } = 20;
+}

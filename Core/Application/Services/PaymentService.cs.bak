@@ -1,0 +1,440 @@
+using Microsoft.EntityFrameworkCore;
+using REAL_ESTATE_CLEAN.Core.Persistence;
+
+namespace REAL_ESTATE_CLEAN.Core.Application.Services;
+
+public class PaymentService
+{
+    private readonly AppDbContext _context;
+
+    public PaymentService(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Payment> CreatePayment(
+        int userId,
+        int propertyId,
+        decimal amount,
+        string paymentMethod)
+    {
+                if (amount <= 0)
+            throw new ArgumentOutOfRangeException(
+                nameof(amount),
+                "Ödeme tutarı sıfırdan büyük olmalıdır.");
+
+        var payment = new Payment
+        {
+            UserId = userId,
+            PropertyId = propertyId,
+            Amount = amount,
+            Currency = "TRY",
+            PaymentMethod = paymentMethod.Trim(),
+            TransactionId = Guid.NewGuid().ToString("N"),
+            Status = "Pending",
+            PaidAt = DateTime.UtcNow
+        };
+
+        _context.Payments.Add(payment);
+
+        await _context.SaveChangesAsync();
+
+        return payment;
+    }
+
+    public async Task<bool> MarkAsPaid(int paymentId)
+    {
+        var payment = await _context.Payments.FindAsync(paymentId);
+
+        if (payment is null)
+            return false;
+
+        payment.Status = "Paid";
+        payment.PaidAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
+
+    public async Task<bool> CancelPayment(int paymentId)
+    {
+        var payment = await _context.Payments.FindAsync(paymentId);
+
+        if (payment is null)
+            return false;
+
+        payment.Status = "Cancelled";
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
+
+    public async Task<List<Payment>> GetUserPayments(int userId)
+    {
+        return await _context.Payments
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+    public async Task<Payment?> GetPayment(int paymentId)
+    {
+        return await _context.Payments
+            .FirstOrDefaultAsync(x => x.Id == paymentId);
+    }
+
+    public async Task<Payment?> GetByTransactionId(string transactionId)
+    {
+        return await _context.Payments
+            .FirstOrDefaultAsync(x =>
+                x.TransactionId == transactionId);
+    }
+
+    public async Task<decimal> GetTotalRevenue()
+    {
+        return await _context.Payments
+            .Where(x => x.Status == "Paid")
+            .SumAsync(x => x.Amount);
+    }
+
+    public async Task<int> GetPaymentCount()
+    {
+        return await _context.Payments.CountAsync();
+    }
+
+    public async Task<List<Payment>> GetPendingPayments()
+    {
+        return await _context.Payments
+            .Where(x => x.Status == "Pending")
+            .OrderBy(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+    public async Task<List<Payment>> GetSuccessfulPayments()
+    {
+        return await _context.Payments
+            .Where(x => x.Status == "Paid")
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+}
+
+    public async Task<Payment?> GetPaymentById(int id)
+    {
+        return await _context.Payments
+            .FirstOrDefaultAsync(x => x.Id == id);
+    }
+
+
+    public async Task<List<Payment>> GetAllPayments()
+    {
+        return await _context.Payments
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<Payment>> GetUserPayments(int userId)
+    {
+        return await _context.Payments
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<bool> UpdatePaymentStatus(
+        int paymentId,
+        string status)
+    {
+        var payment = await _context.Payments
+            .FirstOrDefaultAsync(x => x.Id == paymentId);
+
+        if (payment == null)
+            return false;
+
+        payment.Status = status;
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
+
+
+    public async Task<List<Payment>> GetPaymentsByStatus(string status)
+    {
+        return await _context.Payments
+            .Where(x => x.Status == status)
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<decimal> GetTotalRevenue()
+    {
+        return await _context.Payments
+            .Where(x => x.Status == "Completed")
+            .SumAsync(x => x.Amount);
+    }
+
+
+    public async Task<Dictionary<int, decimal>> GetMonthlyRevenue(int year)
+    {
+        return await _context.Payments
+            .Where(x =>
+                x.Status == "Completed" &&
+                x.PaidAt.Year == year)
+            .GroupBy(x => x.PaidAt.Month)
+            .ToDictionaryAsync(
+                g => g.Key,
+                g => g.Sum(x => x.Amount));
+    }
+
+
+    public async Task<List<(int UserId, decimal TotalAmount)>> GetTopPayingUsers(int count)
+    {
+        return await _context.Payments
+            .Where(x => x.Status == "Completed")
+            .GroupBy(x => x.UserId)
+            .Select(g => new ValueTuple<int, decimal>(
+                g.Key,
+                g.Sum(x => x.Amount)))
+            .OrderByDescending(x => x.Item2)
+            .Take(count)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<(int PropertyId, decimal TotalRevenue)>> GetTopSellingProperties(int count)
+    {
+        return await _context.Payments
+            .Where(x => x.Status == "Completed")
+            .GroupBy(x => x.PropertyId)
+            .Select(g => new ValueTuple<int, decimal>(
+                g.Key,
+                g.Sum(x => x.Amount)))
+            .OrderByDescending(x => x.Item2)
+            .Take(count)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<Payment>> GetPaymentsByMethod(string paymentMethod)
+    {
+        return await _context.Payments
+            .Where(x => x.PaymentMethod == paymentMethod)
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<Payment>> GetPendingPayments()
+    {
+        return await _context.Payments
+            .Where(x => x.Status == "Pending")
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<int> GetPaymentCount()
+    {
+        return await _context.Payments.CountAsync();
+    }
+
+
+    public async Task<int> GetCompletedPaymentCount()
+    {
+        return await _context.Payments
+            .CountAsync(x => x.Status == "Completed");
+    }
+
+
+    public async Task<int> GetFailedPaymentCount()
+    {
+        return await _context.Payments
+            .CountAsync(x => x.Status == "Failed");
+    }
+
+
+    public async Task<int> GetPaymentCountByMethod(string paymentMethod)
+    {
+        return await _context.Payments
+            .CountAsync(x => x.PaymentMethod == paymentMethod);
+    }
+
+
+    public async Task<decimal> GetAveragePaymentAmount()
+    {
+        if (!await _context.Payments.AnyAsync())
+            return 0;
+
+        return await _context.Payments
+            .AverageAsync(x => x.Amount);
+    }
+
+
+    public async Task<decimal> GetAverageCompletedPaymentAmount()
+    {
+        var payments = _context.Payments
+            .Where(x => x.Status == "Completed");
+
+        if (!await payments.AnyAsync())
+            return 0;
+
+        return await payments.AverageAsync(x => x.Amount);
+    }
+
+
+    public async Task<Payment?> GetHighestPayment()
+    {
+        return await _context.Payments
+            .OrderByDescending(x => x.Amount)
+            .FirstOrDefaultAsync();
+    }
+
+
+    public async Task<Payment?> GetLowestPayment()
+    {
+        return await _context.Payments
+            .OrderBy(x => x.Amount)
+            .FirstOrDefaultAsync();
+    }
+
+
+    public async Task<Payment?> GetLastPayment()
+    {
+        return await _context.Payments
+            .OrderByDescending(x => x.PaidAt)
+            .FirstOrDefaultAsync();
+    }
+
+
+    public async Task<List<Payment>> GetPaymentsBetweenDates(
+        DateTime startDate,
+        DateTime endDate)
+    {
+        return await _context.Payments
+            .Where(x => x.PaidAt >= startDate &&
+                        x.PaidAt <= endDate)
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<Payment>> SearchPayments(string keyword)
+    {
+        keyword = keyword.ToLower();
+
+        return await _context.Payments
+            .Where(x =>
+                x.TransactionId.ToLower().Contains(keyword) ||
+                x.PaymentMethod.ToLower().Contains(keyword) ||
+                x.Status.ToLower().Contains(keyword) ||
+                x.Currency.ToLower().Contains(keyword))
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<Payment>> GetPaymentsByUserAndStatus(
+        int userId,
+        string status)
+    {
+        return await _context.Payments
+            .Where(x =>
+                x.UserId == userId &&
+                x.Status == status)
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<Payment>> GetPaymentsByProperty(int propertyId)
+    {
+        return await _context.Payments
+            .Where(x => x.PropertyId == propertyId)
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<Payment>> GetPaymentsByUser(int userId)
+    {
+        return await _context.Payments
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<Payment>> GetPaymentsByPropertyAndStatus(
+        int propertyId,
+        string status)
+    {
+        return await _context.Payments
+            .Where(x =>
+                x.PropertyId == propertyId &&
+                x.Status == status)
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<Payment>> GetPaymentsByUserAndMethod(
+        int userId,
+        string paymentMethod)
+    {
+        return await _context.Payments
+            .Where(x =>
+                x.UserId == userId &&
+                x.PaymentMethod == paymentMethod)
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<Payment>> GetPaymentsByUserAndCurrency(
+        int userId,
+        string currency)
+    {
+        return await _context.Payments
+            .Where(x =>
+                x.UserId == userId &&
+                x.Currency == currency)
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<Payment>> GetPaymentsByUserBetweenDates(
+        int userId,
+        DateTime startDate,
+        DateTime endDate)
+    {
+        return await _context.Payments
+            .Where(x =>
+                x.UserId == userId &&
+                x.PaidAt >= startDate &&
+                x.PaidAt <= endDate)
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<Payment>> GetPaymentsByPropertyBetweenDates(
+        int propertyId,
+        DateTime startDate,
+        DateTime endDate)
+    {
+        return await _context.Payments
+            .Where(x =>
+                x.PropertyId == propertyId &&
+                x.PaidAt >= startDate &&
+                x.PaidAt <= endDate)
+            .OrderByDescending(x => x.PaidAt)
+            .ToListAsync();
+    }
+

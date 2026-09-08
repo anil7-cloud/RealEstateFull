@@ -1,0 +1,50 @@
+@page "/lead-pipeline"
+
+@inject HttpClient Http
+
+<h1>Lead Pipeline</h1>
+
+<div class="pipeline">
+
+@if (pipelines == null)
+{
+    <p>Yükleniyor...</p>
+}
+else
+{
+    @foreach (var group in pipelines)
+    {
+        <div class="stage">
+
+            <h3>@group.Stage</h3>
+
+            <div class="count">
+                @group.Count Lead
+            </div>
+
+        </div>
+    }
+}
+
+</div>
+
+
+@code {
+
+    private List<PipelineDto>? pipelines;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        pipelines = await Http.GetFromJsonAsync<List<PipelineDto>>(
+            "api/lead-dashboard/pipeline");
+    }
+
+
+    public class PipelineDto
+    {
+        public string Stage { get; set; } = string.Empty;
+
+        public int Count { get; set; }
+    }
+}
