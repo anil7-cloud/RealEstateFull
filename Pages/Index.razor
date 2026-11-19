@@ -3,7 +3,7 @@
 @using Microsoft.EntityFrameworkCore
 @inject REAL_ESTATE_CLEAN.Core.Persistence.AppDbContext Db
 
-<h1>🏠 Real Estate Dashboard TEST</h1>
+<h1>🏠 Estarelq</h1>
 
 <div class="cards">
 
@@ -32,13 +32,6 @@
     </div>
 
 </div>
-
-<h2>DB TEST</h2>
-
-<p><strong>Users:</strong> @customerCount</p>
-<p><strong>Properties:</strong> @propertyCount</p>
-<p><strong>Leads:</strong> @leadCount</p>
-<p><strong>Income:</strong> ₺@income.ToString("N0")</p>
 
 @if (activities.Count == 0)
 {
