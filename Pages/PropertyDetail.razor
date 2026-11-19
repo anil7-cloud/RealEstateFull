@@ -363,13 +363,10 @@
     loading = true;
     errorMessage = null;
 
+
+
     try
     {
-        if (!CurrentUser.IsAuthenticated)
-        {
-            Nav.NavigateTo("/login");
-            return;
-        }
 
         property = await PropertyService.GetById(Id);
 
@@ -387,27 +384,6 @@
         {
             errorMessage = "İlan bulunamadı.";
             return;
-        }
-
-        // Admin bütün ilanları görebilir.
-        // Normal kullanıcı sadece kendi ilanını görebilir.
-        if (!string.Equals(
-                CurrentUser.Role,
-                "Admin",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            var belongsToUser =
-                await PropertyService.BelongsToUser(
-                    Id,
-                    CurrentUser.UserId!.Value);
-
-            if (!belongsToUser)
-            {
-                property = null;
-                errorMessage =
-                    "Bu ilana erişim yetkiniz yok.";
-                return;
-            }
         }
 
         media = await Db.PropertyMedia
