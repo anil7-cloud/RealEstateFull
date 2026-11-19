@@ -23,8 +23,12 @@ if (!string.IsNullOrWhiteSpace(firebaseCredentialsPath) &&
 
 
 // DB
+var databasePath =
+    Environment.GetEnvironmentVariable("DATABASE_PATH")
+    ?? "realestate.db";
+
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlite("Data Source=realestate.db"));
+    opt.UseSqlite($"Data Source={databasePath}"));
 
 builder.Services.AddScoped<REAL_ESTATE_CLEAN.Infrastructure.Auth.AuthService>();
 // SERVICES
